@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -20,9 +21,12 @@ MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
 if __name__ == '__main__':
 
+    logging.basicConfig(level=logging.INFO)
+
     repo = Repo.init()
     origin = repo.remote()
     with repo.config_writer() as config:
+        logging.info(f'Setting user to {GIT_USER} <{GIT_EMAIL}>')
         config.set_value('user', 'email', GIT_EMAIL)
         config.set_value('user', 'name', GIT_USER)
 
@@ -33,17 +37,19 @@ if __name__ == '__main__':
     unbuilt_versions = mac_versions - docker_versions
 
     for version in unbuilt_versions:
+        logging.info(f'Preparing new release for {version}')
         major_minor_version = '.'.join(version.split('.')[:2])
         release_name = f'release/{version}'
         if release_name in repo.heads:
+            logging.warn(f'{release_name} already exists')
             continue
         head = repo.create_head(release_name, BASE_BRANCH)
-        head.checkout()
         with open('Dockerfile', 'r+') as d:
             new_dockerfile = re.sub(f'({DOCKERFILE_VERSION_STRING}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
             d.seek(0)
             d.write(new_dockerfile)
             d.truncate()
+
         repo.index.add(['Dockerfile'])
         repo.index.commit(f'Rev image to {version}')
         repo.create_tag(version)

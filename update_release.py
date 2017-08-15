@@ -1,3 +1,4 @@
+import logging
 import os
 
 from git import Repo
@@ -19,9 +20,12 @@ MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
 if __name__ == '__main__':
 
+    logging.basicConfig(level=logging.INFO)
+
     repo = Repo.init()
     origin = repo.remote()
     with repo.config_writer() as config:
+        logging.info(f'Setting user to {GIT_USER} <{GIT_EMAIL}>')
         config.set_value('user', 'email', GIT_EMAIL)
         config.set_value('user', 'name', GIT_USER)
 
@@ -31,6 +35,7 @@ if __name__ == '__main__':
     for head in repo.heads:
         if not head.name.startswith(f'release/{BASE_VERSION}'):
             continue
+        logging.info(f'Updating {head.name} with new changes from {BASE_BRANCH}')
         head.checkout()
         version = head.name.replace('release/', '')
         major_minor_version = '.'.join(version.split('.')[:2])
