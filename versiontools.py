@@ -31,3 +31,8 @@ def minor_is_latest(version, all_versions):
     minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in minor_versions[-1:]
 
+def major_is_latest(version, all_versions):
+    major_version = version.split('.')[0]
+    major_versions = [v for v in all_versions if v.startswith(major_version)]
+    major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+    return version in major_versions[-1:]

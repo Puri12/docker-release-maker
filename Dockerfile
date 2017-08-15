@@ -3,6 +3,8 @@ MAINTAINER Dave Chevell
 
 WORKDIR /usr/src/app
 
+RUN apk --update add git openssh
+
 COPY requirements.txt /usr/src/app/requirements.txt
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
