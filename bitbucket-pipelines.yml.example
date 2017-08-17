@@ -18,7 +18,7 @@ pipelines:
             - export MAC_PRODUCT_KEY=bitbucket
             - python /usr/src/app/create_release.py
   branches:
-    base/5:
+    base5:
       - step:
           script:
             - git fetch --all
