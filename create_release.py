@@ -4,7 +4,7 @@ import re
 
 from git import Repo
 
-from versiontools import mac_versions, docker_tags, latest_mac_version, major_is_latest, minor_is_latest
+from versiontools import mac_versions, docker_tags, major_is_latest, minor_is_latest, version_is_latest
 
 
 BASE_BRANCH = os.environ.get('BASE_BRANCH')
@@ -34,7 +34,6 @@ if __name__ == '__main__':
 
     logging.info('Retrieving released versions from marketplace')
     mac_versions = {v for v in mac_versions(MAC_PRODUCT_KEY, 50) if v[:1] == BASE_VERSION}
-    latest_mac_version = latest_mac_version(MAC_PRODUCT_KEY)
     logging.info('Retrieving version tags from Docker')
     docker_versions = docker_tags(DOCKER_REPO)
 
@@ -64,7 +63,7 @@ if __name__ == '__main__':
         if minor_is_latest(version, mac_versions):
             logging.info(f'Tagging {version} as {major_minor_version}')
             repo.create_tag(major_minor_version, force=True)
-        if version == latest_mac_version:
+        if version_is_latest(version, mac_versions):
             logging.info(f'Tagging {version} as latest')
             repo.create_tag('latest', force=True)
     logging.info('Pushing branches')
