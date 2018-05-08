@@ -4,7 +4,6 @@ env/
 .idea/
 nohup.out
 bin/preload.sql
-
 *.pyc
 node_modules/
 .ve/
