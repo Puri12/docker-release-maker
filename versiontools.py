@@ -3,12 +3,23 @@ import json
 import requests
 
 def mac_versions(product_key, limit=100):
+    request_url = f'/rest/2/products/key/{product_key}/versions'
     params = {'limit': limit}
-    r = requests.get(f'https://marketplace.atlassian.com/rest/2/products/key/{product_key}/versions',
-                     params=params)
-    version_data = json.loads(r.text)
-    mac_versions = {v['name'] for v in version_data['_embedded']['versions']}
+    mac_versions, request_url = mac_versions_page(request_url, params)
+    while request_url:
+        versions, request_url = mac_versions_page(request_url)
+        mac_versions |= versions
     return mac_versions
+
+def mac_versions_page(request_url, params={}):
+    mac_url = 'https://marketplace.atlassian.com'
+    r = requests.get(mac_url + request_url, params=params)
+    version_data = json.loads(r.text)
+    versions = {v['name'] for v in version_data['_embedded']['versions']}
+    next_url = ''
+    if 'next' in version_data['_links']:
+        next_url = version_data['_links']['next']['href']
+    return versions, next_url
 
 
 def docker_tags(repo):
