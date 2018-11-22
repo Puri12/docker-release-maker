@@ -19,7 +19,7 @@ MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
 TAG_SUFFIX = os.environ.get('TAG_SUFFIX')
 
-if os.environ.get('SHOULD_CREATE_TAG'):
+if os.environ.get('SHOULD_CREATE_LATEST_TAG'):
     SHOULD_CREATE_LATEST_TAG = str2bool(os.environ.get('SHOULD_CREATE_LATEST_TAG'))
 else:
     SHOULD_CREATE_LATEST_TAG = True
@@ -70,7 +70,7 @@ if __name__ == '__main__':
         repo.create_tag(version, force=True)
 
         if TAG_SUFFIX:
-            version_without_suffix = re.sub(f"-{suffix}".format(suffix=TAG_SUFFIX), "", version)
+            version_without_suffix = re.sub(f'-{TAG_SUFFIX}', '', version)
             if major_is_latest(version_without_suffix, mac_versions):
                 logging.info(f'Tagging {version} as {major_version}-{TAG_SUFFIX}')
                 repo.create_tag(f'{major_version}-{TAG_SUFFIX}', force=True)
