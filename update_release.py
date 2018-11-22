@@ -1,10 +1,10 @@
 import logging
 import os
+import re
 
 from git import Repo
 
-from versiontools import mac_versions, docker_tags, major_is_latest, minor_is_latest, version_is_latest
-
+from versiontools import mac_versions, major_is_latest, minor_is_latest, version_is_latest, str2bool
 
 BASE_BRANCH = os.environ.get('BASE_BRANCH')
 BASE_VERSION = os.environ.get('BASE_VERSION')
@@ -17,6 +17,12 @@ GIT_EMAIL = os.environ.get('GIT_EMAIL')
 
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
+TAG_SUFFIX = os.environ.get('TAG_SUFFIX')
+
+if os.environ.get('SHOULD_CREATE_TAG'):
+    SHOULD_CREATE_LATEST_TAG = str2bool(os.environ.get('SHOULD_CREATE_LATEST_TAG'))
+else:
+    SHOULD_CREATE_LATEST_TAG = True
 
 if __name__ == '__main__':
 
@@ -36,6 +42,8 @@ if __name__ == '__main__':
     for head in remote_heads:
         if not head.startswith(f'release/{BASE_VERSION}'):
             continue
+        if TAG_SUFFIX and not head.endswith(TAG_SUFFIX):
+            continue
         logging.info(f'Updating {head} with new changes from {BASE_BRANCH}')
         repo.git.checkout(head)
         version = head.replace('release/', '')
@@ -43,15 +51,29 @@ if __name__ == '__main__':
         major_version = version.split('.')[0]
         repo.git.merge(BASE_BRANCH)
         repo.create_tag(version, force=True)
-        if major_is_latest(version, mac_versions):
-            logging.info(f'Tagging {version} as {major_version}')
-            repo.create_tag(major_version, force=True)
-        if minor_is_latest(version, mac_versions):
-            logging.info(f'Tagging {version} as {major_minor_version}')
-            repo.create_tag(major_minor_version, force=True)
-        if version_is_latest(version, mac_versions):
-            logging.info(f'Tagging {version} as latest')
-            repo.create_tag('latest', force=True)
+
+        if TAG_SUFFIX:
+            version_without_suffix = re.sub(f"-{suffix}".format(suffix=TAG_SUFFIX), "", version)
+            if major_is_latest(version_without_suffix, mac_versions):
+                logging.info(f'Tagging {version} as {major_version}-{TAG_SUFFIX}')
+                repo.create_tag(f'{major_version}-{TAG_SUFFIX}', force=True)
+            if minor_is_latest(version_without_suffix, mac_versions):
+                logging.info(f'Tagging {version} as {major_minor_version}-{TAG_SUFFIX}')
+                repo.create_tag(f'{major_minor_version}-{TAG_SUFFIX}', force=True)
+            if version_is_latest(version_without_suffix, mac_versions) and SHOULD_CREATE_LATEST_TAG:
+                logging.info(f'Tagging {version} as latest')
+                repo.create_tag('latest', force=True)
+        else:
+            if major_is_latest(version, mac_versions):
+                logging.info(f'Tagging {version} as {major_version}')
+                repo.create_tag(major_version, force=True)
+            if minor_is_latest(version, mac_versions):
+                logging.info(f'Tagging {version} as {major_minor_version}')
+                repo.create_tag(major_minor_version, force=True)
+            if version_is_latest(version, mac_versions) and SHOULD_CREATE_LATEST_TAG:
+                logging.info(f'Tagging {version} as latest')
+                repo.create_tag('latest', force=True)
+
     logging.info('Pushing branches')
     origin.push(all=True)
     logging.info('Pushing tags')
