@@ -52,6 +52,10 @@ if __name__ == '__main__':
 
     for version in unbuilt_versions:
         logging.info(f'Preparing new release for {version}')
+        version_without_suffix = version
+        if TAG_SUFFIX:
+            version_without_suffix = version_without_suffix = re.sub(f'-{TAG_SUFFIX}', '', version)
+
         major_minor_version = '.'.join(version.split('.')[:2])
         major_version = version.split('.')[0]
         release_name = f'release/{version}'
@@ -61,7 +65,7 @@ if __name__ == '__main__':
         head = repo.create_head(release_name, BASE_BRANCH)
         head.checkout()
         with open('Dockerfile', 'r+') as d:
-            new_dockerfile = re.sub(f'({DOCKERFILE_VERSION_STRING}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
+            new_dockerfile = re.sub(f'({DOCKERFILE_VERSION_STRING}[=\\s])([\\d\\.]*)', f'\\g<1>{version_without_suffix}', d.read())
             d.seek(0)
             d.write(new_dockerfile)
             d.truncate()
@@ -70,7 +74,6 @@ if __name__ == '__main__':
         repo.create_tag(version, force=True)
 
         if TAG_SUFFIX:
-            version_without_suffix = re.sub(f'-{TAG_SUFFIX}', '', version)
             if major_is_latest(version_without_suffix, mac_versions):
                 logging.info(f'Tagging {version} as {major_version}-{TAG_SUFFIX}')
                 repo.create_tag(f'{major_version}-{TAG_SUFFIX}', force=True)
