@@ -2,6 +2,7 @@ import json
 
 import requests
 
+
 def mac_versions(product_key, limit=100):
     request_url = f'/rest/2/products/key/{product_key}/versions'
     params = {'limit': limit}
@@ -10,6 +11,7 @@ def mac_versions(product_key, limit=100):
         versions, request_url = mac_versions_page(request_url)
         mac_versions |= versions
     return mac_versions
+
 
 def mac_versions_page(request_url, params={}):
     mac_url = 'https://marketplace.atlassian.com'
@@ -31,14 +33,14 @@ def docker_tags(repo):
 
 def minor_is_latest(version, all_versions):
     major_minor_version = '.'.join(version.split('.')[:2])
-    minor_versions = [v for v in all_versions if v.startswith(major_minor_version)]
+    minor_versions = [v for v in all_versions if v.startswith(f'{major_minor_version}.')]
     minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in minor_versions[-1:]
 
 
 def major_is_latest(version, all_versions):
     major_version = version.split('.')[0]
-    major_versions = [v for v in all_versions if v.startswith(major_version)]
+    major_versions = [v for v in all_versions if v.startswith(f'{major_version}.')]
     major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in major_versions[-1:]
 
@@ -47,3 +49,10 @@ def version_is_latest(version, all_versions):
     versions = [v for v in all_versions]
     versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in versions[-1:]
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
