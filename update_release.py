@@ -53,7 +53,7 @@ if __name__ == '__main__':
         repo.create_tag(version, force=True)
 
         if TAG_SUFFIX:
-            version_without_suffix = re.sub(f"-{suffix}".format(suffix=TAG_SUFFIX), "", version)
+            version_without_suffix = re.sub(f"-{TAG_SUFFIX}", "", version)
             if major_is_latest(version_without_suffix, mac_versions):
                 logging.info(f'Tagging {version} as {major_version}-{TAG_SUFFIX}')
                 repo.create_tag(f'{major_version}-{TAG_SUFFIX}', force=True)
