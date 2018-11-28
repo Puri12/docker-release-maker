@@ -12,8 +12,8 @@ BASE_VERSION = os.environ.get('BASE_VERSION')
 DOCKER_REPO = os.environ.get('DOCKER_REPO')
 DOCKERFILE_VERSION_STRING = os.environ.get('DOCKERFILE_VERSION_STRING')
 
-GIT_EMAIL = os.environ.get('GIT_EMAIL')
 GIT_USER = os.environ.get('GIT_USER')
+GIT_EMAIL = os.environ.get('GIT_EMAIL')
 
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
