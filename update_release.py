@@ -19,7 +19,7 @@ MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 
 TAG_SUFFIX = os.environ.get('TAG_SUFFIX')
 
-if os.environ.get('SHOULD_CREATE_TAG'):
+if os.environ.get('SHOULD_CREATE_LATEST_TAG'):
     SHOULD_CREATE_LATEST_TAG = str2bool(os.environ.get('SHOULD_CREATE_LATEST_TAG'))
 else:
     SHOULD_CREATE_LATEST_TAG = True
@@ -37,13 +37,18 @@ if __name__ == '__main__':
         config.set_value('user', 'email', GIT_EMAIL)
         config.set_value('user', 'name', GIT_USER)
 
+    logging.info('Retrieving released versions from marketplace')
     mac_versions = {v for v in mac_versions(MAC_PRODUCT_KEY) if v[:1] == BASE_VERSION}
 
     for head in remote_heads:
         if not head.startswith(f'release/{BASE_VERSION}'):
             continue
-        if TAG_SUFFIX and not head.endswith(TAG_SUFFIX):
-            continue
+        if TAG_SUFFIX:
+            if not head.endswith(TAG_SUFFIX):
+                continue
+        else:
+            if head.endswith(TAG_SUFFIX):
+                continue
         logging.info(f'Updating {head} with new changes from {BASE_BRANCH}')
         repo.git.checkout(head)
         version = head.replace('release/', '')
