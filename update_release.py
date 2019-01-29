@@ -47,7 +47,7 @@ if __name__ == '__main__':
             if not head.endswith(TAG_SUFFIX):
                 continue
         else:
-            if head.endswith(TAG_SUFFIX):
+            if not re.match(r'^release/\d+\.\d+\.\d+(\.\d+)?$', head):
                 continue
         logging.info(f'Updating {head} with new changes from {BASE_BRANCH}')
         repo.git.checkout(head)
