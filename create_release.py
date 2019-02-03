@@ -32,15 +32,10 @@ if __name__ == '__main__':
     origin = repo.remote()
     remote_heads = [r.remote_head for r in origin.refs]
 
-    with repo.config_writer() as config:
-        logging.info(f'Setting user to {GIT_USER} <{GIT_EMAIL}>')
-        config.set_value('user', 'email', GIT_EMAIL)
-        config.set_value('user', 'name', GIT_USER)
-
     logging.info('Retrieving released versions from marketplace')
     mac_versions = {v for v in mac_versions(MAC_PRODUCT_KEY) if v[:1] == BASE_VERSION}
 
-    # Add the tag with tag suffix into mac_versions    
+    # Add the tag with tag suffix into mac_versions
     mac_versions_suffix = {}
     if TAG_SUFFIX:
         mac_versions_suffix = {f'{v}-{TAG_SUFFIX}' for v in mac_versions}
