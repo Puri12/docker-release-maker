@@ -1,3 +1,5 @@
+import logging
+import os
 import re
 
 from git import Repo
@@ -26,9 +28,17 @@ def mac_versions(product_key, offset=0, limit=50):
         request_url = version_data['_links']['next']['href']
 
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    else:
+        return False
+
+
+
 class ReleaseManager:
 
-    def __init__(self, product_key, docker_version_string, default_release, tag_suffixes=None):
+    def __init__(self, mac_product_key, dockerfile_version_string, default_release, tag_suffixes=None):
         self.repo = Repo()
         self.origin = self.repo.remote()
         self.base_branch = self.repo.head.ref.name
@@ -37,18 +47,18 @@ class ReleaseManager:
             self.base_suffix = self.base_branch.split('-')[2]
         except IndexError:
             self.base_suffix = None
-        self.releases = self.existing_releases()
 
+        logging.info('Retrieving released versions from marketplace')
         self.product_versions = {
-            v for v in mac_versions(product_key)
+            v for v in mac_versions(mac_product_key)
             if v[:1] == self.base_version
         }
-        self.docker_version_string = docker_version_string
+        self.dockerfile_version_string = dockerfile_version_string
         self.default_release = default_release
 
         if tag_suffixes is None:
             tag_suffixes = set()
-        self.tag_suffixes = tag_suffixes
+        self.tag_suffixes = set(tag_suffixes)
         if self.base_suffix is not None:
             self.tag_suffixes.add(self.base_suffix)
 
@@ -108,12 +118,13 @@ class ReleaseManager:
 
     def unbuilt_releases(self):
         potential_releases = {self.release_branch_name(v) for v in self.product_versions}
-        unbuilt = potential_releases - self.releases
+        unbuilt = potential_releases - self.existing_releases()
         return unbuilt
 
     def update_dockerfile(self, version):
+        logging.info(f'Updating {self.dockerfile_version_string} to {version} in Dockerfile')
         with open('Dockerfile', 'r+') as d:
-            new_dockerfile = re.sub(f'({self.docker_version_string}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
+            new_dockerfile = re.sub(f'({self.dockerfile_version_string}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
             d.seek(0)
             d.write(new_dockerfile)
             d.truncate()
@@ -122,23 +133,30 @@ class ReleaseManager:
 
     def create_releases(self):
         for release in self.unbuilt_releases():
+            logging.info(f'Preparing {release}')
             version = extract_version(release)
             head = self.repo.create_head(release, self.base_branch)
             head.checkout()
             self.update_dockerfile(version)
             for tag in self.calculate_tags(version):
+                logging.info(f'Tagging {release} as {tag}')
                 self.repo.create_tag(tag, force=True)
+        logging.info('Pushing branches')
         self.origin.push(all=True)
+        logging.info('Pushing tags')
         self.origin.push(tags=True, force=True)
 
     def update_releases(self):
-        for release in self.releases:
+        for release in self.existing_releases():
+            logging.info(f'Updating {release} with new changes from {self.base_branch}')
             version = extract_version(release)
             self.repo.git.checkout(release)
             self.repo.git.merge(self.base_branch)
             for tag in self.calculate_tags(version):
+                logging.info(f'Tagging {release} as {tag}')
                 self.repo.create_tag(tag, force=True)
+        logging.info('Pushing branches')
         self.origin.push(all=True)
+        logging.info('Pushing tags')
         self.origin.push(tags=True, force=True)
-
 
