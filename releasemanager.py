@@ -29,10 +29,9 @@ def mac_versions(product_key, offset=0, limit=50):
 
 
 def str2bool(v):
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if str(v).lower() in ('yes', 'true', 't', 'y', '1'):
         return True
-    else:
-        return False
+    return False
 
 
 
@@ -62,75 +61,6 @@ class ReleaseManager:
         if self.base_suffix is not None:
             self.tag_suffixes.add(self.base_suffix)
 
-    def latest(self, version):
-        versions = [v for v in self.product_versions]
-        versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in versions[-1:]
-
-    def latest_major(self, version):
-        major_version = version.split('.')[0]
-        major_versions = [v for v in self.product_versions if v.startswith(f'{major_version}.')]
-        major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in major_versions[-1:]
-
-    def latest_minor(self, version):
-        major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.product_versions if v.startswith(f'{major_minor_version}.')]
-        minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in minor_versions[-1:]
-
-    def calculate_tags(self, version):
-        tags = set()
-        version_tags = {version}
-        if self.latest_major(version):
-            major_version = version.split('.')[0]
-            version_tags.add(major_version)
-        if self.latest_minor(version):
-            major_minor_version = '.'.join(version.split('.')[:2])
-            version_tags.add(major_minor_version)
-        if self.default_release:
-            tags |= (version_tags)
-            if self.latest(version):
-                tags.add('latest')
-        for suffix in self.tag_suffixes:
-            for v in version_tags:
-                suffix_tag = f'{v}-{suffix}'
-                tags.add(suffix_tag)
-        return tags
-
-    def existing_releases(self):
-        version_re = '\.\d+\.\d+(\.\d+)?'
-        releases = set()
-        if self.base_suffix is None:
-            pattern = re.compile(fr'release/{self.base_version}{version_re}$')
-        else:
-            pattern = re.compile(fr'release/{self.base_version}{version_re}-{self.base_suffix}$')
-        remote_heads = {r.remote_head for r in self.origin.refs}
-        for head in remote_heads:
-            if pattern.match(head):
-                releases.add(head)
-        return releases
-
-    def release_branch_name(self, version):
-        if self.base_suffix is None:
-            return f'release/{version}'
-        return f'release/{version}-{self.base_suffix}'
-
-    def unbuilt_releases(self):
-        potential_releases = {self.release_branch_name(v) for v in self.product_versions}
-        unbuilt = potential_releases - self.existing_releases()
-        return unbuilt
-
-    def update_dockerfile(self, version):
-        logging.info(f'Updating {self.dockerfile_version_string} to {version} in Dockerfile')
-        with open('Dockerfile', 'r+') as d:
-            new_dockerfile = re.sub(f'({self.dockerfile_version_string}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
-            d.seek(0)
-            d.write(new_dockerfile)
-            d.truncate()
-        self.repo.index.add(['Dockerfile'])
-        self.repo.index.commit(f'Rev image to {version}')
-
     def create_releases(self):
         for release in self.unbuilt_releases():
             logging.info(f'Preparing {release}')
@@ -159,4 +89,73 @@ class ReleaseManager:
         self.origin.push(all=True)
         logging.info('Pushing tags')
         self.origin.push(tags=True, force=True)
+
+    def existing_releases(self):
+        version_re = '\.\d+\.\d+(\.\d+)?'
+        releases = set()
+        if self.base_suffix is None:
+            pattern = re.compile(fr'release/{self.base_version}{version_re}$')
+        else:
+            pattern = re.compile(fr'release/{self.base_version}{version_re}-{self.base_suffix}$')
+        remote_heads = {r.remote_head for r in self.origin.refs}
+        for head in remote_heads:
+            if pattern.match(head):
+                releases.add(head)
+        return releases
+
+    def unbuilt_releases(self):
+        potential_releases = {self.release_branch_name(v) for v in self.product_versions}
+        unbuilt = potential_releases - self.existing_releases()
+        return unbuilt
+
+    def release_branch_name(self, version):
+        if self.base_suffix is None:
+            return f'release/{version}'
+        return f'release/{version}-{self.base_suffix}'
+
+    def calculate_tags(self, version):
+        tags = set()
+        version_tags = {version}
+        if self.latest_major(version):
+            major_version = version.split('.')[0]
+            version_tags.add(major_version)
+        if self.latest_minor(version):
+            major_minor_version = '.'.join(version.split('.')[:2])
+            version_tags.add(major_minor_version)
+        if self.default_release:
+            tags |= (version_tags)
+            if self.latest(version):
+                tags.add('latest')
+        for suffix in self.tag_suffixes:
+            for v in version_tags:
+                suffix_tag = f'{v}-{suffix}'
+                tags.add(suffix_tag)
+        return tags
+
+    def update_dockerfile(self, version):
+        logging.info(f'Updating {self.dockerfile_version_string} to {version} in Dockerfile')
+        with open('Dockerfile', 'r+') as d:
+            new_dockerfile = re.sub(f'({self.dockerfile_version_string}[=\\s])([\\d\\.]*)', f'\\g<1>{version}', d.read())
+            d.seek(0)
+            d.write(new_dockerfile)
+            d.truncate()
+        self.repo.index.add(['Dockerfile'])
+        self.repo.index.commit(f'Rev image to {version}')
+
+    def latest(self, version):
+        versions = [v for v in self.product_versions]
+        versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+        return version in versions[-1:]
+
+    def latest_major(self, version):
+        major_version = version.split('.')[0]
+        major_versions = [v for v in self.product_versions if v.startswith(f'{major_version}.')]
+        major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+        return version in major_versions[-1:]
+
+    def latest_minor(self, version):
+        major_minor_version = '.'.join(version.split('.')[:2])
+        minor_versions = [v for v in self.product_versions if v.startswith(f'{major_minor_version}.')]
+        minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+        return version in minor_versions[-1:]
 
