@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 from git import Repo
@@ -26,6 +25,7 @@ def mac_versions(product_key, offset=0, limit=50):
         if 'next' not in version_data['_links']:
             return
         request_url = version_data['_links']['next']['href']
+        params = {}
 
 
 def str2bool(v):

@@ -10,10 +10,10 @@ pipelines:
           script:
             - git remote set-url origin ${BITBUCKET_GIT_HTTP_ORIGIN}
             - git fetch --all
-            - export MAC_PRODUCT_KEY=bitbucket
-            - export DOCKERFILE_VERSION_STRING=BITBUCKET_VERSION
-            - export DEFAULT_RELEASE=true
-            - export ADDITIONAL_TAG_SUFFIXES=jdk8,jdk8-ubuntu
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export DOCKERFILE_VERSION_STRING='BITBUCKET_VERSION'
+            - export DEFAULT_RELEASE='true'
+            - export ADDITIONAL_TAG_SUFFIXES='jdk8,jdk8-ubuntu'
             - python /usr/src/app/run.py --create
   branches:
     base-5:
@@ -21,8 +21,8 @@ pipelines:
           script:
             - git remote set-url origin ${BITBUCKET_GIT_HTTP_ORIGIN}
             - git fetch --all
-            - export MAC_PRODUCT_KEY=bitbucket
-            - export DOCKERFILE_VERSION_STRING=BITBUCKET_VERSION
-            - export DEFAULT_RELEASE=true
-            - export ADDITIONAL_TAG_SUFFIXES=jdk8,jdk8-ubuntu
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export DOCKERFILE_VERSION_STRING='BITBUCKET_VERSION'
+            - export DEFAULT_RELEASE='true'
+            - export ADDITIONAL_TAG_SUFFIXES='jdk8,jdk8-ubuntu'
             - python /usr/src/app/run.py --update
