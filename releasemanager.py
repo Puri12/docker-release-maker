@@ -50,7 +50,7 @@ class ReleaseManager:
         logging.info('Retrieving released versions from marketplace')
         self.product_versions = {
             v for v in mac_versions(mac_product_key)
-            if v[:1] == self.base_version
+            if v[:1] == self.base_version and all(d.isdigit() for d in v.split('.'))
         }
         self.dockerfile_version_string = dockerfile_version_string
         self.default_release = default_release
