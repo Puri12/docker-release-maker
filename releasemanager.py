@@ -130,6 +130,8 @@ class ReleaseManager:
             for v in version_tags:
                 suffix_tag = f'{v}-{suffix}'
                 tags.add(suffix_tag)
+            if self.latest(version):
+                tags.add(suffix)
         return tags
 
     def update_dockerfile(self, version):
