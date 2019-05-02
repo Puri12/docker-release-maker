@@ -50,7 +50,7 @@ class ReleaseManager:
         logging.info('Retrieving released versions from marketplace')
         self.product_versions = {
             v for v in mac_versions(mac_product_key)
-            if v[:1] == self.base_version and all(d.isdigit() for d in v.split('.'))
+            if all(d.isdigit() for d in v.split('.'))
         }
         self.dockerfile_version_string = dockerfile_version_string
         self.default_release = default_release
@@ -104,7 +104,10 @@ class ReleaseManager:
         return releases
 
     def unbuilt_releases(self):
-        potential_releases = {self.release_branch_name(v) for v in self.product_versions}
+        potential_releases = {
+            self.release_branch_name(v) for v in self.product_versions
+            if v[:1] == self.base_version
+        }
         unbuilt = potential_releases - self.existing_releases()
         return unbuilt
 
