@@ -71,10 +71,10 @@ class ReleaseManager:
             for tag in self.calculate_tags(version):
                 logging.info(f'Tagging {release} as {tag}')
                 self.repo.create_tag(tag, force=True)
-        logging.info('Pushing branches')
-        self.origin.push(all=True)
-        logging.info('Pushing tags')
-        self.origin.push(tags=True, force=True)
+            logging.info(f'Pushing branch {release}')
+            self.origin.push(release)
+            logging.info(f'Pushing tags for {release}')
+            self.origin.push(tags=True, force=True)
 
     def update_releases(self):
         for release in self.existing_releases():
@@ -85,10 +85,10 @@ class ReleaseManager:
             for tag in self.calculate_tags(version):
                 logging.info(f'Tagging {release} as {tag}')
                 self.repo.create_tag(tag, force=True)
-        logging.info('Pushing branches')
-        self.origin.push(all=True)
-        logging.info('Pushing tags')
-        self.origin.push(tags=True, force=True)
+            logging.info(f'Pushing branch {release}')
+            self.origin.push(release)
+            logging.info(f'Pushing tags for {release}')
+            self.origin.push(tags=True, force=True)
 
     def existing_releases(self):
         version_re = '\.\d+\.\d+(\.\d+)?'
