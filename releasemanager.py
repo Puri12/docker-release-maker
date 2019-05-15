@@ -55,7 +55,7 @@ class ReleaseManager:
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
-        versions_to_build = self.release_versions - self.docker_tags
+        versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
     def update_releases(self):
@@ -71,8 +71,20 @@ class ReleaseManager:
             for tag in self.calculate_tags(version):
                 release = f'{self.docker_repo}:{tag}'
                 image.tag(self.docker_repo, tag=tag)
-                logging.info(f'Pushing tag {release}')
+                logging.info(f'Pushing tag "{release}"')
                 self.docker_cli.images.push(release)
+
+    def unbuilt_release_versions(self):
+        if self.default_release:
+            return self.release_versions - self.docker_tags
+        versions = set()
+        for v in self.release_versions:
+            for suffix in self.tag_suffixes:
+                tag = f'{v}-{suffix}'
+                if tag not in self.docker_tags:
+                    versions.add(v)
+        logging.info(versions)
+        return versions
 
     def calculate_tags(self, version):
         tags = set()
