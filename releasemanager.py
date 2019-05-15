@@ -6,16 +6,6 @@ import requests
 
 
 
-docker_client = docker.from_env()
-
-
-def extract_version(release):
-    pattern = re.compile(r'(\d+\.\d+\.\d+(\.\d+)?)')
-    match = pattern.search(release)
-    if match is not None:
-        return match.group(1)
-
-
 def docker_tags(repo):
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
     tag_data = r.json()
@@ -50,9 +40,10 @@ def str2bool(v):
 
 class ReleaseManager:
 
-    def __init__(self, base_version, mac_product_key, docker_repo, dockerfile_version_arg, default_release, tag_suffixes):
+    def __init__(self, base_version, default_release, docker_repo, dockerfile_version_arg, mac_product_key, tag_suffixes):
         self.base_version = base_version
         self.default_release = default_release
+        self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
         self.docker_tags = docker_tags(docker_repo)
         self.dockerfile_version_arg = dockerfile_version_arg
@@ -73,13 +64,13 @@ class ReleaseManager:
         for version in versions_to_build:
             logging.info(f'Building {self.docker_repo} for version {version}')
             buildargs = {self.dockerfile_version_arg: version}
-            image, logs = docker_client.images.build(path='.', buildargs=buildargs, rm=True)
+            image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
             for tag in self.calculate_tags(version):
                 release = f'{self.docker_repo}:{tag}'
                 logging.info(f'Tagging image as {release}')
                 image.tag(self.docker_repo, tag=tag)
                 logging.info(f'Pushing {release}')
-                docker_client.images.push(release)
+                self.docker_cli.images.push(release)
 
     def calculate_tags(self, version):
         tags = set()

@@ -1,0 +1,9 @@
+image: python:alpine
+
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          script:
+            - pip install -r requirements.txt
+            - py.test tests/
