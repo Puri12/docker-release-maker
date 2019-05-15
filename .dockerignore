@@ -5,11 +5,15 @@ env/
 *.sqlite
 .idea/
 nohup.out
+
+__pycache__
 *.pyc
+**/__pycache__
+**/*.pyc
+.pytest_cache/
 node_modules/
 .ve/
 .cache/
-__pycache__
 *.swp
 *.egg-info/
 MANIFEST

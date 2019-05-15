@@ -1,9 +1,9 @@
-image: python:alpine
-
 pipelines:
   pull-requests:
     '**':
       - step:
+          services:
+            - docker
           script:
-            - pip install -r requirements.txt
-            - py.test tests/
+            - docker build -t "drm:dev" .
+            - docker run --rm drm:dev py.test
