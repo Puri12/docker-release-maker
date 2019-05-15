@@ -108,10 +108,19 @@ def test_create_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions,
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
     rm.create_releases()
-    expected_versions = {'6.5.4', '6.7.8'}
-    unexpected_versions = {'5.4.3', '5.6.7', '6.7.7'}
-    assert all([v in caplog.text for v in expected_versions])
-    assert not any([v in caplog.text for v in unexpected_versions])
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.4"',
+        f'{refapp["docker_repo"]}:6.7.8'
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:5.4.3"',
+        f'"{refapp["docker_repo"]}:5.6.7"',
+        f'"{refapp["docker_repo"]}:6.7.7"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
 
 
 @mock.patch('releasemanager.docker')
@@ -121,7 +130,58 @@ def test_update_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions,
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
     rm.update_releases()
-    expected_versions = {'6.5.4', '6.7.7', '6.7.8'}
-    unexpected_versions = {'5.4.3', '5.6.7'}
-    assert all([v in caplog.text for v in expected_versions])
-    assert not any([v in caplog.text for v in unexpected_versions])
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.4"',
+        f'"{refapp["docker_repo"]}:6.7.7"',
+        f'"{refapp["docker_repo"]}:6.7.8"',
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:5.4.3"',
+        f'"{refapp["docker_repo"]}:5.6.7"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.5.5', '6.7.7', '6.5.4-jdk11', '6.5.5-ubuntu'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.5.5', '6.7.7', '6.7.8'})
+def test_create_competing_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.4"',
+        f'"{refapp["docker_repo"]}:6.7.8"',
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.5"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+    refapp['default_release'] = False
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.7.7-jdk8"',
+        f'"{refapp["docker_repo"]}:6.7.8-jdk8"',
+        f'"{refapp["docker_repo"]}:6.5.4-ubuntu"',
+        f'"{refapp["docker_repo"]}:6.5.4-jdk8"',
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:5.4.3"',
+        f'"{refapp["docker_repo"]}:5.6.7"',
+        f'"{refapp["docker_repo"]}:6.7.7"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+
