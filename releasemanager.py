@@ -7,6 +7,7 @@ import requests
 
 
 def docker_tags(repo):
+    logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
     tag_data = r.json()
     tags = {t['name'] for t in tag_data}
@@ -14,6 +15,7 @@ def docker_tags(repo):
 
 
 def mac_versions(product_key, offset=0, limit=50):
+    logging.info(f'Retrieving Marketplace product versions for {product_key}')
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
     params = {'offset': offset, 'limit': limit}
@@ -61,15 +63,15 @@ class ReleaseManager:
         return self.build_releases(versions_to_build)
 
     def build_releases(self, versions_to_build):
+        logging.info(f'Found {len(versions_to_build)} release{"" if len(versions_to_build)==1 else "s"} to build')
         for version in versions_to_build:
-            logging.info(f'Building {self.docker_repo} for version {version}')
+            logging.info(f'Building {self.docker_repo} with {self.dockerfile_version_arg}={version}')
             buildargs = {self.dockerfile_version_arg: version}
             image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
             for tag in self.calculate_tags(version):
                 release = f'{self.docker_repo}:{tag}'
-                logging.info(f'Tagging image as {release}')
                 image.tag(self.docker_repo, tag=tag)
-                logging.info(f'Pushing {release}')
+                logging.info(f'Pushing tag {release}')
                 self.docker_cli.images.push(release)
 
     def calculate_tags(self, version):
