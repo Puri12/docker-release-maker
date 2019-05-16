@@ -1,0 +1,9 @@
+pipelines:
+  pull-requests:
+    '**':
+      - step:
+          services:
+            - docker
+          script:
+            - docker build -t "drm:dev" .
+            - docker run --rm drm:dev py.test

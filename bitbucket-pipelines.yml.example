@@ -1,30 +1,32 @@
-image: dchevell/docker-release-maker:latest
-clone:
-  depth: full
+image: atlassian/docker-release-maker:latest
 
-# pipelines example for Bitbucket Server 5
+# pipelines example for Bitbucket Server 6
 pipelines:
   custom:
-    create-release:
+    create-release-base-6:
       - step:
+          services:
+            - docker
           script:
-            - git remote set-url origin ${BITBUCKET_GIT_HTTP_ORIGIN}
-            - git fetch --all
-            - export BASE_BRANCH='base-5'
-            - export MAC_PRODUCT_KEY='bitbucket'
-            - export DOCKERFILE_VERSION_STRING='BITBUCKET_VERSION'
+            - export BASE_VERSION='6'
             - export DEFAULT_RELEASE='true'
-            - export ADDITIONAL_TAG_SUFFIXES='jdk8,jdk8-ubuntu'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk8,ubuntu'
+            - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD}
             - python /usr/src/app/run.py --create
   branches:
-    base-5:
+    base-6:
       - step:
+          services:
+            - docker
           script:
-            - git remote set-url origin ${BITBUCKET_GIT_HTTP_ORIGIN}
-            - git fetch --all
-            - export BASE_BRANCH='base-5'
-            - export MAC_PRODUCT_KEY='bitbucket'
-            - export DOCKERFILE_VERSION_STRING='BITBUCKET_VERSION'
+            - export BASE_VERSION='6'
             - export DEFAULT_RELEASE='true'
-            - export ADDITIONAL_TAG_SUFFIXES='jdk8,jdk8-ubuntu'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk8,ubuntu'
+            - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD}
             - python /usr/src/app/run.py --update
