@@ -67,7 +67,11 @@ class ReleaseManager:
         for version in versions_to_build:
             logging.info(f'Building {self.docker_repo} with {self.dockerfile_version_arg}={version}')
             buildargs = {self.dockerfile_version_arg: version}
-            image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
+            try:
+                image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
+            except docker.errors.BuildError as exc:
+                logging.error(f'Build for {self.docker_repo} with {self.dockerfile_version_arg}={version} failed:\n\t{exc}')
+                continue
             for tag in self.calculate_tags(version):
                 release = f'{self.docker_repo}:{tag}'
                 image.tag(self.docker_repo, tag=tag)

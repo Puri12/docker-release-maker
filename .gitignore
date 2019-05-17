@@ -9,6 +9,7 @@ node_modules/
 .ve/
 .cache/
 __pycache__
+.pytest_cache/
 *.swp
 *.egg-info/
 MANIFEST
