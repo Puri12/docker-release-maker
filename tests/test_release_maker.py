@@ -1,6 +1,7 @@
 import logging
 from unittest import mock
 
+import docker
 import pytest
 
 from releasemanager import docker_tags, mac_versions, ReleaseManager, str2bool
@@ -21,7 +22,7 @@ def test_mac_versions(refapp):
     assert all([i.isdigit() for v in versions for i in v.split('.')])
 
 
-@mock.patch('releasemanager.docker')
+@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags')
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.7.7', '6.7.8'})
 def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, refapp):
@@ -101,7 +102,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     assert expected_tags == tags
 
 
-@mock.patch('releasemanager.docker')
+@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_create_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
@@ -123,7 +124,7 @@ def test_create_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions,
         assert tag not in caplog.text
 
 
-@mock.patch('releasemanager.docker')
+@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_update_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
@@ -145,7 +146,7 @@ def test_update_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions,
         assert tag not in caplog.text
 
 
-@mock.patch('releasemanager.docker')
+@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.5.5', '6.7.7', '6.5.4-jdk11', '6.5.5-ubuntu'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.5.5', '6.7.7', '6.7.8'})
 def test_create_competing_releases(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
@@ -184,4 +185,20 @@ def test_create_competing_releases(mocked_docker, mocked_docker_tags, mocked_mac
         assert tag not in caplog.text
 
 
-
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value=set())
+@mock.patch('releasemanager.mac_versions', return_value={'6.5.5', '6.7.7', '6.7.8'})
+def test_raise_exceptions(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+    rm.docker_cli.images.build.side_effect = docker.errors.BuildError('Test failure message', 'Build log')
+    with pytest.raises(docker.errors.BuildError):
+        rm.create_releases()
+    expected_logs = {
+        '6.5.5 failed',
+        '6.7.8 failed',
+        '6.7.7 failed',
+        'Test failure message',
+    }
+    for logmsg in expected_logs:
+        assert logmsg in caplog.text
