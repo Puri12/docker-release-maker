@@ -9,12 +9,13 @@ pipelines:
             - docker
           script:
             - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='atlassian/bitbucket-server'
             - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
             - export MAC_PRODUCT_KEY='bitbucket'
             - export TAG_SUFFIXES='jdk8,ubuntu'
-            - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD}
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - python /usr/src/app/run.py --create
   branches:
     base-6:
@@ -23,10 +24,11 @@ pipelines:
             - docker
           script:
             - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='atlassian/bitbucket-server'
             - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
             - export MAC_PRODUCT_KEY='bitbucket'
             - export TAG_SUFFIXES='jdk8,ubuntu'
-            - docker login --username ${DOCKER_USERNAME} --password ${DOCKER_PASSWORD}
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - python /usr/src/app/run.py --update
