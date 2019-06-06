@@ -5,6 +5,7 @@ import pytest
 def refapp():
     app = {
         'base_version': '6',
+        'concurrent_builds': '4',
         'default_release': True,
         'docker_repo': 'atlassian/bitbucket-server',
         'dockerfile_version_arg': 'BITBUCKET_VERSION',
