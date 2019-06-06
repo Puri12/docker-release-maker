@@ -1,3 +1,4 @@
+import concurrent.futures
 import logging
 import re
 
@@ -42,13 +43,16 @@ def str2bool(v):
 
 class ReleaseManager:
 
-    def __init__(self, base_version, default_release, docker_repo, dockerfile_version_arg, mac_product_key, tag_suffixes):
+    def __init__(self, base_version, concurrent_builds, default_release, docker_repo, 
+                 dockerfile_version_arg, mac_product_key, tag_suffixes):
         self.base_version = base_version
+        self.concurrent_builds = int(concurrent_builds or 4)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
         self.docker_tags = docker_tags(docker_repo)
         self.dockerfile_version_arg = dockerfile_version_arg
+        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.concurrent_builds)
         self.mac_versions = mac_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
                                  if v.startswith(f'{base_version}.')}
@@ -64,15 +68,29 @@ class ReleaseManager:
 
     def build_releases(self, versions_to_build):
         logging.info(f'Found {len(versions_to_build)} release{"" if len(versions_to_build)==1 else "s"} to build')
+        logging.info(f'Building with {self.concurrent_builds} threads')
+        builds = []
         for version in versions_to_build:
-            logging.info(f'Building {self.docker_repo} with {self.dockerfile_version_arg}={version}')
-            buildargs = {self.dockerfile_version_arg: version}
+            build = self.executor.submit(self._build_release, version)
+            builds.append(build)
+        for build in concurrent.futures.as_completed(builds):
+            exc = build.exception()
+            if exc is not None:
+                raise exc
+            
+    def _build_release(self, version):
+        logging.info(f'Building {self.docker_repo} with {self.dockerfile_version_arg}={version}')
+        buildargs = {self.dockerfile_version_arg: version}
+        try:
             image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
-            for tag in self.calculate_tags(version):
-                release = f'{self.docker_repo}:{tag}'
-                image.tag(self.docker_repo, tag=tag)
-                logging.info(f'Pushing tag "{release}"')
-                self.docker_cli.images.push(release)
+        except docker.errors.BuildError as exc:
+            logging.error(f'Build for {self.docker_repo} with {self.dockerfile_version_arg}={version} failed:\n\t{exc}')
+            raise exc
+        for tag in self.calculate_tags(version):
+            release = f'{self.docker_repo}:{tag}'
+            image.tag(self.docker_repo, tag=tag)
+            logging.info(f'Pushing tag "{release}"')
+            self.docker_cli.images.push(release)
 
     def unbuilt_release_versions(self):
         if self.default_release:

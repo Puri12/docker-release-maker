@@ -10,6 +10,7 @@ from releasemanager import ReleaseManager, str2bool
 logging.basicConfig(level=logging.INFO)
 
 BASE_VERSION = os.environ.get('BASE_VERSION')
+CONCURRENT_BUILDS = os.environ.get('CONCURRENT_BUILDS')
 DEFAULT_RELEASE = str2bool(os.environ.get('DEFAULT_RELEASE'))
 DOCKER_REPO = os.environ.get('DOCKER_REPO')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
@@ -30,6 +31,7 @@ if __name__ == '__main__':
         logging.error('BASE_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
     manager = ReleaseManager(base_version=BASE_VERSION,
+                             concurrent_builds=CONCURRENT_BUILDS,
                              default_release=DEFAULT_RELEASE,
                              docker_repo=DOCKER_REPO,
                              dockerfile_version_arg=DOCKERFILE_VERSION_ARG,
