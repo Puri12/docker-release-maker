@@ -40,17 +40,22 @@ def str2bool(v):
     return False
 
 
+def parse_buildargs(buildargs):
+    return dict(item.split("=") for item in buildargs.split(","))
+
+
 
 class ReleaseManager:
 
     def __init__(self, base_version, concurrent_builds, default_release, docker_repo, 
-                 dockerfile_version_arg, mac_product_key, tag_suffixes):
+                 dockerfile_buildargs, dockerfile_version_arg, mac_product_key, tag_suffixes):
         self.base_version = base_version
         self.concurrent_builds = int(concurrent_builds or 4)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
         self.docker_tags = docker_tags(docker_repo)
+        self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.concurrent_builds)
         self.mac_versions = mac_versions(mac_product_key)
@@ -79,8 +84,11 @@ class ReleaseManager:
                 raise exc
             
     def _build_release(self, version):
-        logging.info(f'Building {self.docker_repo} with {self.dockerfile_version_arg}={version}')
         buildargs = {self.dockerfile_version_arg: version}
+        if self.dockerfile_buildargs is not None:
+            buildargs.update(parse_buildargs(self.dockerfile_buildargs))
+        buildargs_log_str = ', '.join(['{}={}'.format(*i) for i in buildargs.items()])
+        logging.info(f'Building {self.docker_repo} with buildargs: {buildargs_log_str}')
         try:
             image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
         except docker.errors.BuildError as exc:
