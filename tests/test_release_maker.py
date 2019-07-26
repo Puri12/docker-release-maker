@@ -202,3 +202,15 @@ def test_raise_exceptions(mocked_docker, mocked_docker_tags, mocked_mac_versions
     }
     for logmsg in expected_logs:
         assert logmsg in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+def test_custom_buildargs(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    refapp['dockerfile_buildargs'] = 'ARTEFACT=jira-software,BASE_IMAGE=adoptopenjdk/openjdk11:slim'
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    assert 'ARTEFACT=jira-software' in caplog.text
+    assert 'BASE_IMAGE=adoptopenjdk/openjdk11:slim' in caplog.text
