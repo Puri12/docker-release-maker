@@ -1,10 +1,11 @@
 image: atlassian/docker-release-maker:latest
 
-# pipelines example for Bitbucket Server 6
+# pipelines examples for Bitbucket Server 6
 pipelines:
   custom:
     new-releases:
       - step:
+          name: Bitbucket JDK 8 Ubuntu
           services:
             - docker
           script:
@@ -12,15 +13,45 @@ pipelines:
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='atlassian/bitbucket-server'
-            - export DOCKERFILE_BUILDARGS='BASE_IMAGE=adoptopenjdk/openjdk11:slim,GIT_VERSION=2.21.0'
             - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
             - export MAC_PRODUCT_KEY='bitbucket'
             - export TAG_SUFFIXES='jdk8,ubuntu'
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - python /usr/src/app/run.py --create
+      - step:
+          name: Bitbucket JDK 11 Ubuntu
+          services:
+            - docker
+          script:
+            - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
+            - export DEFAULT_RELEASE='false'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE_BUILDARGS='BASE_IMAGE=adoptopenjdk/openjdk11:slim,GIT_VERSION=2.21.0'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk11,jdk11-ubuntu'
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - python /usr/src/app/run.py --create
+      - step:
+          name: Bitbucket JDK 8 Alpine
+          services:
+            - docker
+          script:
+            - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
+            - export DEFAULT_RELEASE='false'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE='Dockerfile-alpine'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk8-alpine,alpine'
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - python /usr/src/app/run.py --create
   branches:
     base-6:
       - step:
+          name: Bitbucket JDK 8 Ubuntu
           services:
             - docker
           script:
@@ -31,5 +62,35 @@ pipelines:
             - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
             - export MAC_PRODUCT_KEY='bitbucket'
             - export TAG_SUFFIXES='jdk8,ubuntu'
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - python /usr/src/app/run.py --update
+      - step:
+          name: Bitbucket JDK 11 Ubuntu
+          services:
+            - docker
+          script:
+            - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
+            - export DEFAULT_RELEASE='false'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE_BUILDARGS='BASE_IMAGE=adoptopenjdk/openjdk11:slim,GIT_VERSION=2.21.0'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk11,jdk11-ubuntu'
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - python /usr/src/app/run.py --update
+      - step:
+          name: Bitbucket JDK 8 Alpine
+          services:
+            - docker
+          script:
+            - export BASE_VERSION='6'
+            - export CONCURRENT_BUILDS='4'
+            - export DEFAULT_RELEASE='false'
+            - export DOCKER_REPO='atlassian/bitbucket-server'
+            - export DOCKERFILE='Dockerfile-alpine'
+            - export DOCKERFILE_VERSION_ARG='BITBUCKET_VERSION'
+            - export MAC_PRODUCT_KEY='bitbucket'
+            - export TAG_SUFFIXES='jdk8-alpine,alpine'
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - python /usr/src/app/run.py --update
