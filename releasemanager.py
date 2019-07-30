@@ -48,16 +48,20 @@ def parse_buildargs(buildargs):
 class ReleaseManager:
 
     def __init__(self, base_version, concurrent_builds, default_release, docker_repo, 
-                 dockerfile_buildargs, dockerfile_version_arg, mac_product_key, tag_suffixes):
+    			 dockerfile, dockerfile_buildargs, dockerfile_version_arg,
+    			 mac_product_key, tag_suffixes):
         self.base_version = base_version
         self.concurrent_builds = int(concurrent_builds or 4)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
         self.docker_tags = docker_tags(docker_repo)
+        self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
-        self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=self.concurrent_builds)
+        self.executor = concurrent.futures.ThreadPoolExecutor(
+        	max_workers=self.concurrent_builds
+        )
         self.mac_versions = mac_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
                                  if v.startswith(f'{base_version}.')}
@@ -72,8 +76,13 @@ class ReleaseManager:
         return self.build_releases(versions_to_build)
 
     def build_releases(self, versions_to_build):
-        logging.info(f'Found {len(versions_to_build)} release{"" if len(versions_to_build)==1 else "s"} to build')
+        logging.info(
+        	f'Found {len(versions_to_build)} '
+        	f'release{"" if len(versions_to_build)==1 else "s"} to build'
+        )
         logging.info(f'Building with {self.concurrent_builds} threads')
+        if self.dockerfile is not None:
+        	logging.info(f'Using docker file "{self.dockerfile}"')
         builds = []
         for version in versions_to_build:
             build = self.executor.submit(self._build_release, version)
@@ -90,9 +99,15 @@ class ReleaseManager:
         buildargs_log_str = ', '.join(['{}={}'.format(*i) for i in buildargs.items()])
         logging.info(f'Building {self.docker_repo} with buildargs: {buildargs_log_str}')
         try:
-            image = self.docker_cli.images.build(path='.', buildargs=buildargs, rm=True)[0]
+            image = self.docker_cli.images.build(path='.',
+            									 buildargs=buildargs,
+            									 dockerfile=self.dockerfile,
+            									 rm=True)[0]
         except docker.errors.BuildError as exc:
-            logging.error(f'Build for {self.docker_repo} with {self.dockerfile_version_arg}={version} failed:\n\t{exc}')
+            logging.error(
+            	f'Build for {self.docker_repo} with '
+            	f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
+            )
             raise exc
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
@@ -140,13 +155,15 @@ class ReleaseManager:
 
     def latest_major(self, version):
         major_version = version.split('.')[0]
-        major_versions = [v for v in self.mac_versions if v.startswith(f'{major_version}.')]
+        major_versions = [v for v in self.mac_versions 
+        				  if v.startswith(f'{major_version}.')]
         major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in major_versions[-1:]
 
     def latest_minor(self, version):
         major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.mac_versions if v.startswith(f'{major_minor_version}.')]
+        minor_versions = [v for v in self.mac_versions 
+        				  if v.startswith(f'{major_minor_version}.')]
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
 
