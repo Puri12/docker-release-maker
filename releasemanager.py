@@ -10,6 +10,8 @@ import requests
 def docker_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
+    if r.status_code == requests.codes.not_found:
+    	return set()
     tag_data = r.json()
     tags = {t['name'] for t in tag_data}
     return tags
