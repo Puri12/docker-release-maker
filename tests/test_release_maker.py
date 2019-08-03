@@ -4,7 +4,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import docker_tags, mac_versions, ReleaseManager, str2bool
+from releasemanager import docker_tags, mac_versions, ReleaseManager, str2bool, tag_sort_key
 
 
 
@@ -226,3 +226,19 @@ def test_create_releases_with_specified_dockerfile(mocked_docker, mocked_docker_
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     assert custom_dockerfile in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.6.7', '6.7.7', '6.8.0', '6.8.1'})
+def test_tag_sorting(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tag_order = ['6.8.0-jdk8', '6.8.0-ubuntu', '6.8.0', '6.8.1-jdk8', '6.8-jdk8', '6-jdk8', '6.8.1-ubuntu', '6.8-ubuntu', 
+                     '6-ubuntu', '6.8.1', '6.8', '6', 'jdk8', 'ubuntu', 'latest']
+    tag_positions = []
+    for tag in expected_tag_order:
+        position = caplog.text.find(f'"{refapp["docker_repo"]}:{tag}"')
+        tag_positions.append(position)
+    assert tag_positions == sorted(tag_positions)

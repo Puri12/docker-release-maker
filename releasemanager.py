@@ -44,6 +44,27 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
+def tag_sort_key(tag):
+    """
+    Preferred tag order is:
+        version-suffix, version, suffix, latest
+    Versions are ordered most to least specific:
+        major.minor.patch, major.minor, major
+    Example of a full set of sorted tags:
+        8.3.1-jdk8, 8.3-jdk8, 8-jdk8, 8.3.1-ubuntu, 8.3-ubuntu, 
+        8-ubuntu, 8.3.1, 8.3, 8, jdk8, ubuntu, latest
+    """
+    tag = tag.lower()
+    if '-' in tag:
+        version, suffix = tag.split('-')
+        return f'-1.{suffix}.{version}.999.999'
+    elif all([i.isdigit() for i in tag.split('.')]):
+        return f'{tag}.999.999'
+    elif tag == 'latest':
+        return 'zzz'
+    return tag
+
+
 
 class ReleaseManager:
 
@@ -76,6 +97,7 @@ class ReleaseManager:
         return self.build_releases(versions_to_build)
 
     def build_releases(self, versions_to_build):
+        versions_to_build = sorted(versions_to_build)
         logging.info(
             f'Found {len(versions_to_build)} '
             f'release{"" if len(versions_to_build)==1 else "s"} to build'
@@ -109,7 +131,8 @@ class ReleaseManager:
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
             raise exc
-        for tag in self.calculate_tags(version):
+        sorted_tags = sorted(self.calculate_tags(version), key=tag_sort_key)
+        for tag in sorted_tags:
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
             logging.info(f'Pushing tag "{release}"')
