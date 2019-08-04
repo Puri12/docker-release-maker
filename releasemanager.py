@@ -46,6 +46,9 @@ def parse_buildargs(buildargs):
 
 def tag_sort_key(tag):
     """
+    Return a sorting key for Docker tags to ensure tags are listed
+    in order of priority. To weight tag priority cleanly, a tuple 
+    of priority ordered values is returned. 
     Preferred tag order is:
         version-suffix, version, suffix, latest
     Versions are ordered most to least specific:
@@ -55,14 +58,14 @@ def tag_sort_key(tag):
         8-ubuntu, 8.3.1, 8.3, 8, jdk8, ubuntu, latest
     """
     tag = tag.lower()
-    if '-' in tag:
-        version, suffix = tag.split('-')
-        return f'-1.{suffix}.{version}.999.999'
+    if '-' in tag and tag[0].isdigit():
+        version, suffix = tag.split('-', 1)
+        tag = f'-1.{suffix}.{version}.999.999'
     elif all([i.isdigit() for i in tag.split('.')]):
-        return f'{tag}.999.999'
+        tag = f'{tag}.999.999'
     elif tag == 'latest':
-        return 'zzz'
-    return tag
+        tag = 'zzz'
+    return tag.split('.')
 
 
 

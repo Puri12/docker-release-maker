@@ -33,8 +33,9 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     expected_tags = {
         '6', '6.7', '6.7.8',
         '6-jdk8', '6.7-jdk8', '6.7.8-jdk8',
+        '6-jdk8-ubuntu', '6.7-jdk8-ubuntu', '6.7.8-jdk8-ubuntu',
         '6-ubuntu', '6.7-ubuntu', '6.7.8-ubuntu',
-        'latest', 'jdk8', 'ubuntu',
+        'latest', 'jdk8', 'jdk8-ubuntu', 'ubuntu',
     }
     assert expected_tags == tags
 
@@ -43,6 +44,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     expected_tags = {
         '6.7.7',
         '6.7.7-jdk8',
+        '6.7.7-jdk8-ubuntu',
         '6.7.7-ubuntu',
     }
     assert expected_tags == tags
@@ -52,6 +54,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     expected_tags = {
         '5', '5.6', '5.6.7',
         '5-jdk8', '5.6-jdk8', '5.6.7-jdk8',
+        '5-jdk8-ubuntu', '5.6-jdk8-ubuntu', '5.6.7-jdk8-ubuntu',
         '5-ubuntu', '5.6-ubuntu', '5.6.7-ubuntu',
     }
     assert expected_tags == tags
@@ -61,6 +64,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     expected_tags = {
         '5.4', '5.4.3',
         '5.4-jdk8', '5.4.3-jdk8',
+        '5.4-jdk8-ubuntu', '5.4.3-jdk8-ubuntu',
         '5.4-ubuntu', '5.4.3-ubuntu',
     }
     assert expected_tags == tags
@@ -72,8 +76,9 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '6-jdk8', '6.7-jdk8', '6.7.8-jdk8',
+        '6-jdk8-ubuntu', '6.7-jdk8-ubuntu', '6.7.8-jdk8-ubuntu',
         '6-ubuntu', '6.7-ubuntu', '6.7.8-ubuntu',
-        'jdk8', 'ubuntu'
+        'jdk8', 'jdk8-ubuntu', 'ubuntu'
     }
     assert expected_tags == tags
 
@@ -81,6 +86,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '6.7.7-jdk8',
+        '6.7.7-jdk8-ubuntu',
         '6.7.7-ubuntu',
     }
     assert expected_tags == tags
@@ -89,6 +95,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '5-jdk8', '5.6-jdk8', '5.6.7-jdk8',
+        '5-jdk8-ubuntu', '5.6-jdk8-ubuntu', '5.6.7-jdk8-ubuntu',
         '5-ubuntu', '5.6-ubuntu', '5.6.7-ubuntu',
     }
     assert expected_tags == tags
@@ -97,6 +104,7 @@ def test_calculate_tags(mocked_docker, mocked_docker_tags, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '5.4-jdk8', '5.4.3-jdk8',
+        '5.4-jdk8-ubuntu', '5.4.3-jdk8-ubuntu',
         '5.4-ubuntu', '5.4.3-ubuntu',
     }
     assert expected_tags == tags
@@ -235,8 +243,15 @@ def test_tag_sorting(mocked_docker, mocked_docker_tags, mocked_mac_versions, cap
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
     rm.create_releases()
-    expected_tag_order = ['6.8.0-jdk8', '6.8.0-ubuntu', '6.8.0', '6.8.1-jdk8', '6.8-jdk8', '6-jdk8', '6.8.1-ubuntu', '6.8-ubuntu', 
-                     '6-ubuntu', '6.8.1', '6.8', '6', 'jdk8', 'ubuntu', 'latest']
+    expected_tag_order = [
+    	'6.8.0-jdk8', '6.8.0-jdk8-ubuntu', '6.8.0-ubuntu', '6.8.0',
+    	'6.8.1-jdk8', '6.8-jdk8', '6-jdk8',
+    	'6.8.1-jdk8-ubuntu', '6.8-jdk8-ubuntu', '6-jdk8-ubuntu',
+    	'6.8.1-ubuntu', '6.8-ubuntu', '6-ubuntu',
+    	'6.8.1', '6.8', '6',
+    	'jdk8', 'jdk8-ubuntu', 'ubuntu',
+    	'latest'
+    ]
     tag_positions = []
     for tag in expected_tag_order:
         position = caplog.text.find(f'"{refapp["docker_repo"]}:{tag}"')
