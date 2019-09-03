@@ -32,8 +32,8 @@ parser.add_argument('--update', dest='update', action='store_true')
 
 
 if __name__ == '__main__':
-    if None in [BASE_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
-        logging.error('BASE_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
+    if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
+        logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
     manager = ReleaseManager(start_version=START_VERSION,
                              end_version=END_VERSION,
