@@ -226,3 +226,76 @@ def test_create_releases_with_specified_dockerfile(mocked_docker, mocked_docker_
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     assert custom_dockerfile in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+def test_min_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    refapp['min_version'] = '6.5'
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tags = {
+        f'{refapp["docker_repo"]}:6.5.4',
+        f'{refapp["docker_repo"]}:6.7.8',
+    }
+    unexpected_tags = {
+        f'{refapp["docker_repo"]}:5.4.3',
+        f'{refapp["docker_repo"]}:5.6.7',
+        f'{refapp["docker_repo"]}:6.4.4',
+        f'{refapp["docker_repo"]}:6.7.7',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+def test_max_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    refapp['max_version'] = '6.7'
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tags = {
+        f'{refapp["docker_repo"]}:6.4.4',
+        f'{refapp["docker_repo"]}:6.5.4',
+    }
+    unexpected_tags = {
+        f'{refapp["docker_repo"]}:5.4.3',
+        f'{refapp["docker_repo"]}:5.6.7',
+        f'{refapp["docker_repo"]}:6.7.7',
+        f'{refapp["docker_repo"]}:6.7.8',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.6', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+def test_min_max_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    refapp['min_version'] = '5.5'
+    refapp['max_version'] = '6.7'
+    rm = ReleaseManager(**refapp)
+    rm.create_releases()
+    expected_tags = {
+        f'{refapp["docker_repo"]}:5.6.6',
+        f'{refapp["docker_repo"]}:6.4.4',
+        f'{refapp["docker_repo"]}:6.5.4',
+    }
+    unexpected_tags = {
+        f'{refapp["docker_repo"]}:5.4.3',
+        f'{refapp["docker_repo"]}:6.7.7',
+        f'{refapp["docker_repo"]}:6.7.8',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
