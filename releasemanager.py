@@ -1,10 +1,27 @@
 import concurrent.futures
+import dataclasses
 import logging
 import re
 
 import docker
 import requests
 
+
+
+@dataclasses.dataclass(order=True, unsafe_hash=True)
+class Version:
+    major: [int,str] = 0
+    minor: int = 0
+    patch: int = 0
+    build: int = None
+
+    def __post_init__(self):
+        if isinstance(self.major, str):
+            version_index = {i: int(v) for i, v in enumerate(self.major.split('.'))}
+            self.major = version_index.get(0, self.major)
+            self.minor = version_index.get(1, self.minor)
+            self.patch = version_index.get(2, self.patch)
+            self.build = version_index.get(3, self.build)
 
 
 def docker_tags(repo):
@@ -47,10 +64,14 @@ def parse_buildargs(buildargs):
 
 class ReleaseManager:
 
-    def __init__(self, base_version, concurrent_builds, default_release, docker_repo, 
-                 dockerfile, dockerfile_buildargs, dockerfile_version_arg,
+    def __init__(self, start_version, end_version, concurrent_builds, default_release,
+                 docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
                  mac_product_key, tag_suffixes):
-        self.base_version = base_version
+        self.start_version = Version(start_version)
+        if end_version is not None:
+            self.end_version = Version(end_version)
+        else:
+            self.end_version = Version(self.start_version.major + 1)
         self.concurrent_builds = int(concurrent_builds or 4)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
@@ -64,7 +85,7 @@ class ReleaseManager:
         )
         self.mac_versions = mac_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
-                                 if v.startswith(f'{base_version}.')}
+                                 if self.start_version <= Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
