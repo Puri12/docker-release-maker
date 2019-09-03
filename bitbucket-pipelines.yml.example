@@ -9,7 +9,7 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='atlassian/bitbucket-server'
@@ -23,7 +23,7 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6.5'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='false'
             - export DOCKER_REPO='atlassian/bitbucket-server'
@@ -38,7 +38,8 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6.13'
+            - export MAX_VERSION='8'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='false'
             - export DOCKER_REPO='atlassian/bitbucket-server'
@@ -55,7 +56,7 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='atlassian/bitbucket-server'
@@ -69,7 +70,7 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6.5'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='false'
             - export DOCKER_REPO='atlassian/bitbucket-server'
@@ -84,7 +85,8 @@ pipelines:
           services:
             - docker
           script:
-            - export BASE_VERSION='6'
+            - export MIN_VERSION='6.13'
+            - export MAX_VERSION='8'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='false'
             - export DOCKER_REPO='atlassian/bitbucket-server'
