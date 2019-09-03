@@ -231,9 +231,9 @@ def test_create_releases_with_specified_dockerfile(mocked_docker, mocked_docker_
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
-def test_min_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+def test_start_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    refapp['min_version'] = '6.5'
+    refapp['start_version'] = '6.5'
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {
@@ -255,9 +255,9 @@ def test_min_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, cap
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
-def test_max_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+def test_end_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    refapp['max_version'] = '6.7'
+    refapp['end_version'] = '6.7'
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {
@@ -279,10 +279,10 @@ def test_max_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, cap
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.6', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
-def test_min_max_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+def test_min_end_version(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    refapp['min_version'] = '5.5'
-    refapp['max_version'] = '6.7'
+    refapp['start_version'] = '5.5'
+    refapp['end_version'] = '6.7'
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {

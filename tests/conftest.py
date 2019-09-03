@@ -4,8 +4,8 @@ import pytest
 @pytest.fixture
 def refapp():
     app = {
-        'min_version': '6',
-        'max_version': None,
+        'start_version': '6',
+        'end_version': None,
         'concurrent_builds': '4',
         'default_release': True,
         'docker_repo': 'atlassian/bitbucket-server',

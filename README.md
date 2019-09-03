@@ -30,8 +30,8 @@ pipelines:
           services:
             - docker
           script:
-            - export MIN_VERSION='8'
-            - export MAX_VERSION='9'
+            - export START_VERSION='8'
+            - export END_VERSION='9'
             - export CONCURRENT_BUILDS='4'
             - export DEFAULT_RELEASE='true'
             - export DOCKER_REPO='dchevell/jira-software'
@@ -52,20 +52,20 @@ inside this repository.
 
 ### Required parameters
 
-* `MIN_VERSION`
+* `START_VERSION`
 
-   The minimum version to build images for (inclusive). This can be any level of
+   The floor value of versions to build images for (inclusive). This can be any level of
    precision, e.g. '8', '8.1', or '8.1.2'.
 
-* `MAX_VERSION`
+* `END_VERSION`
 
-   The maximum version to build images for (exclusive). This can be any level of
+   The ceiling value of versions to build images for (exclusive). This can be any level of
    precision, e.g. '9', '9.1', or '9.1.2'. If not set, this will default to the major
-   version component of `MIN_VERSION` + 1. 
+   version component of `START_VERSION` + 1. 
 
 * `BASE_VERSION`
 
-   The major version to build images for (deprecated). If `MIN_VERSION` is set, this is
+   The major version to build images for (deprecated). If `START_VERSION` is set, this is
    ignored.
 
 * `DOCKER_REPO`

@@ -64,14 +64,14 @@ def parse_buildargs(buildargs):
 
 class ReleaseManager:
 
-    def __init__(self, concurrent_builds, default_release, docker_repo, 
-                 dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, min_version, max_version, tag_suffixes):
-        self.min_version = Version(min_version)
-        if max_version is not None:
-            self.max_version = Version(max_version)
+    def __init__(self, start_version, end_version, concurrent_builds, default_release,
+                 docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
+                 mac_product_key, tag_suffixes):
+        self.start_version = Version(start_version)
+        if end_version is not None:
+            self.end_version = Version(end_version)
         else:
-            self.max_version = Version(self.min_version.major + 1)
+            self.end_version = Version(self.start_version.major + 1)
         self.concurrent_builds = int(concurrent_builds or 4)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
@@ -85,7 +85,7 @@ class ReleaseManager:
         )
         self.mac_versions = mac_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
-                                 if self.min_version <= Version(v) < self.max_version}
+                                 if self.start_version <= Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
