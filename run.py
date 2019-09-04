@@ -25,11 +25,9 @@ if suffixes is not None:
     suffixes = suffixes.split(',')
 TAG_SUFFIXES = suffixes
 
-
 parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
-
 
 def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
@@ -53,4 +51,3 @@ def main(args):
 if __name__ == '__main__':
     args = parser.parse_args()
     main(args)
-
