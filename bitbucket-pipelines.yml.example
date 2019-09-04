@@ -50,7 +50,7 @@ pipelines:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - python /usr/src/app/run.py --create
   branches:
-    base-6:
+    master:
       - step:
           name: Bitbucket JDK 8 Ubuntu
           services:

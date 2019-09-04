@@ -29,9 +29,7 @@ parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
 
-
-
-if __name__ == '__main__':
+def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
         logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
@@ -45,8 +43,11 @@ if __name__ == '__main__':
                              dockerfile_version_arg=DOCKERFILE_VERSION_ARG,
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES)
-    args = parser.parse_args()
     if args.create:
         manager.create_releases()
     if args.update:
         manager.update_releases()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    main(args)

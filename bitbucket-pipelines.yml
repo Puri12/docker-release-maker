@@ -1,4 +1,14 @@
 pipelines:
+  branches:
+    master:
+      - step:
+          name: Bitbucket JDK 8 Ubuntu
+          services:
+            - docker
+          script:
+            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - docker build -t atlassian/docker-release-maker:latest .
+            - docker push atlassian/docker-release-maker:latest
   pull-requests:
     '**':
       - step:

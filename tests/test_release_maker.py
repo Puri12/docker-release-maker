@@ -1,4 +1,5 @@
 import logging
+import os
 from unittest import mock
 
 import docker
@@ -294,6 +295,76 @@ def test_min_end_version(mocked_docker, mocked_docker_tags, mocked_mac_versions,
         f'{refapp["docker_repo"]}:5.4.3',
         f'{refapp["docker_repo"]}:6.7.7',
         f'{refapp["docker_repo"]}:6.7.8',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    
+    for key, value in refapp.items():
+        if value is None:
+            continue
+        if isinstance(value, bool):
+            os.environ[key.upper()] = str(value).lower()
+        elif isinstance(value, list):
+            os.environ[key.upper()] = ','.join(value)
+        else:
+            os.environ[key.upper()] = value
+    
+    from run import main, parser
+    args = parser.parse_args(['--create'])
+    main(args)
+    
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.4"',
+        f'{refapp["docker_repo"]}:6.7.8'
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:5.4.3"',
+        f'"{refapp["docker_repo"]}:5.6.7"',
+        f'"{refapp["docker_repo"]}:6.7.7"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
+@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    
+    for key, value in refapp.items():
+        if value is None:
+            continue
+        if isinstance(value, bool):
+            os.environ[key.upper()] = str(value).lower()
+        elif isinstance(value, list):
+            os.environ[key.upper()] = ','.join(value)
+        else:
+            os.environ[key.upper()] = value
+    
+    from run import main, parser
+    args = parser.parse_args(['--update'])
+    main(args)
+    
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.5.4"',
+        f'"{refapp["docker_repo"]}:6.7.7"',
+        f'"{refapp["docker_repo"]}:6.7.8"',
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:5.4.3"',
+        f'"{refapp["docker_repo"]}:5.6.7"',
     }
     for tag in expected_tags:
         assert tag in caplog.text
