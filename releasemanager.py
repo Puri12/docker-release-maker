@@ -2,6 +2,7 @@ import concurrent.futures
 import dataclasses
 import logging
 import re
+import time
 
 import docker
 import requests
@@ -136,7 +137,14 @@ class ReleaseManager:
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
             logging.info(f'Pushing tag "{release}"')
-            self.docker_cli.images.push(release)
+            for i in range(1, 6):
+                try:
+                    logging.info(f'Pushing tag "{release}"')
+                    self.docker_cli.images.push(release)
+                except requests.exceptions.ConnectionError:
+                    logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
+                else:
+                    break
 
     def unbuilt_release_versions(self):
         if self.default_release:
