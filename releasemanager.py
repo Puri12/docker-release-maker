@@ -136,14 +136,20 @@ class ReleaseManager:
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
-            for i in range(1, 6):
+            
+            max_retries = 5
+            for i in range(1, max_retries+1):
                 try:
                     logging.info(f'Pushing tag "{release}"')
                     self.docker_cli.images.push(release)
-                except requests.exceptions.ConnectionError:
+                except requests.exceptions.ConnectionError as e:
+                    if i > max_retries:
+                        logging.error(f'Push failed for tag "{release}"')
+                        raise e
                     logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
                     time.sleep(i)
                 else:
+                    logging.info(f'Pushing tag "{release}" succeeded!')
                     break
 
     def unbuilt_release_versions(self):
