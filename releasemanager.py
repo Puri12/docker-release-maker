@@ -118,6 +118,8 @@ class ReleaseManager:
         self.eap_versions = eap_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version}
+        self.eap_release_versions = {v for v in self.eap_versions
+                                 if self.start_version <= Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
@@ -202,9 +204,9 @@ class ReleaseManager:
     
     def unbuilt_eap_versions(self):
         if self.default_release:
-            return self.eap_versions - self.docker_tags
+            return self.eap_release_versions - self.docker_tags
         versions = set()
-        for v in self.eap_versions:
+        for v in self.eap_release_versions:
             for suffix in self.tag_suffixes:
                 tag = f'{v}-{suffix}'
                 if tag not in self.docker_tags:
