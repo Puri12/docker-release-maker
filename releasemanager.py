@@ -17,6 +17,7 @@ class Version:
     patch: int = 0
     build: int = 0
     rtype: str = '~'
+
     def __post_init__(self):
         if isinstance(self.major, str):
             version_str, _, rtype = self.major.partition('-')
@@ -120,14 +121,17 @@ class ReleaseManager:
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
+        logging.info('##### Creating new releases #####')
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
     def update_releases(self):
+        logging.info('##### Updating existing releases #####')
         versions_to_build = self.release_versions
         return self.build_releases(versions_to_build)
     
     def create_eap_releases(self):
+        logging.info('##### Creating new EAP releases #####')
         versions_to_build = self.unbuilt_eap_versions()
         return self.build_releases(versions_to_build)
 
