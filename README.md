@@ -14,7 +14,8 @@ unreleased product versions, or to rebuild and update all published images.
 
 The easiest way to configure Docker Release Maker is to set the desired options as
 environment variables, and then call `run.py --create` to create new releases or
-`run.py --update` to update all releases.
+`run.py --update` to update all releases. The `--create-eap` flag can also be used to
+create EAP releases if they're available.
 
 A typical Pipelines configuration looks like this:
 

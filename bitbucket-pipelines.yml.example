@@ -17,7 +17,7 @@ pipelines:
             - export MAC_PRODUCT_KEY='bitbucket'
             - export TAG_SUFFIXES='jdk8,ubuntu'
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            - python /usr/src/app/run.py --create
+            - python /usr/src/app/run.py --create --create-eap
       - step:
           name: Bitbucket JDK 11 Ubuntu
           services:

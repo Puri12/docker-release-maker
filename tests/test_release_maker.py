@@ -5,7 +5,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import docker_tags, mac_versions, ReleaseManager, str2bool
+from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version
 
 
 
@@ -21,6 +21,26 @@ def test_mac_versions(refapp):
     assert len(versions) > 0
     assert isinstance(versions, set)
     assert all([i.isdigit() for v in versions for i in v.split('.')])
+
+def test_eap_versions(refapp):
+    versions = eap_versions(refapp['mac_product_key'])
+    assert isinstance(versions, set)
+
+def test_version_sorting():
+    x = Version('1.9.9')
+    y = Version('1.20.0')
+    z = Version('1.100')
+    assert x < y < z
+    
+    x = Version('1')
+    y = Version('1.99.99')
+    z = Version('2')
+    assert x < y < z
+    
+    x = Version('1.0.0-RC1')
+    y = Version('1.0.0-RC2')
+    x = Version('1')
+    assert x < y < z
 
 
 @mock.patch('releasemanager.docker.from_env')
@@ -365,6 +385,49 @@ def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
     unexpected_tags = {
         f'"{refapp["docker_repo"]}:5.4.3"',
         f'"{refapp["docker_repo"]}:5.6.7"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
+@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
+def test_create_eap_releases(mocked_docker, mocked_docker_tags, mocked_eap_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+    rm.create_eap_releases()
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-m55"',
+        f'{refapp["docker_repo"]}:6.0.0-RC2'
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-RC1"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
+@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2', '7.0.0-RC2'})
+def test_eap_version_ranges(mocked_docker, mocked_docker_tags, mocked_eap_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    refapp['start_version'] = '5.5'
+    refapp['end_version'] = '6.7'
+    rm = ReleaseManager(**refapp)
+    rm.create_eap_releases()
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-m55"',
+        f'{refapp["docker_repo"]}:6.0.0-RC2'
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-RC1"',
+        f'"{refapp["docker_repo"]}:7.0.0-RC2"',
     }
     for tag in expected_tags:
         assert tag in caplog.text

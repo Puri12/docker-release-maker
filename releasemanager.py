@@ -1,5 +1,6 @@
 import concurrent.futures
 import dataclasses
+import json
 import logging
 import re
 import time
@@ -14,15 +15,18 @@ class Version:
     major: [int,str] = 0
     minor: int = 0
     patch: int = 0
-    build: int = None
+    build: int = 0
+    rtype: str = '~'
 
     def __post_init__(self):
         if isinstance(self.major, str):
-            version_index = {i: int(v) for i, v in enumerate(self.major.split('.'))}
+            version_str, _, rtype = self.major.partition('-')
+            version_index = {i: int(v) for i, v in enumerate(version_str.split('.'))}
             self.major = version_index.get(0, self.major)
             self.minor = version_index.get(1, self.minor)
             self.patch = version_index.get(2, self.patch)
             self.build = version_index.get(3, self.build)
+            self.rtype = rtype
 
 
 def docker_tags(repo):
@@ -51,6 +55,30 @@ def mac_versions(product_key, offset=0, limit=50):
             break
         request_url = version_data['_links']['next']['href']
         params = {}
+    return versions
+
+
+eap_version_pattern = re.compile(r'(\d+(?:\.\d)+(?:-[a-zA-Z0-9]+)?)')
+jira_product_key_mapper = {
+    'jira': 'jira core',
+    'jira-software': 'jira software',
+    'jira-servicedesk': 'jira servicedesk',
+}
+
+def eap_versions(product_key):
+    feed_key = product_key
+    description_key = None
+    if 'jira' in product_key:
+        feed_key = 'jira'
+        description_key = jira_product_key_mapper[product_key]
+    r = requests.get(f'https://my.atlassian.com/download/feeds/eap/{feed_key}.json')
+    data = json.loads(r.text[10:-1])
+    versions = set()
+    for item in data:
+        if description_key is not None and description_key not in item['description'].lower():
+                continue
+        version = eap_version_pattern.search(item['description']).group(1)
+        versions.add(version)
     return versions
 
 
@@ -87,16 +115,26 @@ class ReleaseManager:
             max_workers=self.concurrent_builds
         )
         self.mac_versions = mac_versions(mac_product_key)
+        self.eap_versions = eap_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
+                                 if self.start_version <= Version(v) < self.end_version}
+        self.eap_release_versions = {v for v in self.eap_versions
                                  if self.start_version <= Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
+        logging.info('##### Creating new releases #####')
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
     def update_releases(self):
+        logging.info('##### Updating existing releases #####')
         versions_to_build = self.release_versions
+        return self.build_releases(versions_to_build)
+    
+    def create_eap_releases(self):
+        logging.info('##### Creating new EAP releases #####')
+        versions_to_build = self.unbuilt_eap_versions()
         return self.build_releases(versions_to_build)
 
     def build_releases(self, versions_to_build):
@@ -157,6 +195,18 @@ class ReleaseManager:
             return self.release_versions - self.docker_tags
         versions = set()
         for v in self.release_versions:
+            for suffix in self.tag_suffixes:
+                tag = f'{v}-{suffix}'
+                if tag not in self.docker_tags:
+                    versions.add(v)
+        logging.info(versions)
+        return versions
+    
+    def unbuilt_eap_versions(self):
+        if self.default_release:
+            return self.eap_release_versions - self.docker_tags
+        versions = set()
+        for v in self.eap_release_versions:
             for suffix in self.tag_suffixes:
                 tag = f'{v}-{suffix}'
                 if tag not in self.docker_tags:
