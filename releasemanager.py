@@ -58,7 +58,7 @@ def mac_versions(product_key, offset=0, limit=50):
     return versions
 
 
-eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)?)')
+eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
 jira_product_key_mapper = {
     'jira': 'jira core',
     'jira-software': 'jira software',
