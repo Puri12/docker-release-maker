@@ -401,7 +401,8 @@ def test_create_eap_releases(mocked_docker, mocked_docker_tags, mocked_eap_versi
     rm.create_eap_releases()
     expected_tags = {
         f'"{refapp["docker_repo"]}:6.0.0-m55"',
-        f'{refapp["docker_repo"]}:6.0.0-RC2'
+        f'{refapp["docker_repo"]}:6.0.0-RC2',
+        'eap'
     }
     unexpected_tags = {
         f'"{refapp["docker_repo"]}:6.0.0-RC1"',

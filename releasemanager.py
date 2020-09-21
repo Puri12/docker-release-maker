@@ -119,7 +119,7 @@ class ReleaseManager:
         self.release_versions = {v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version}
         self.eap_release_versions = {v for v in self.eap_versions
-                                 if self.start_version <= Version(v) < self.end_version}
+                                 if Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
@@ -223,6 +223,8 @@ class ReleaseManager:
         if self.latest_minor(version):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
+        if self.latest_eap(version):
+           version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
             if self.latest(version):
@@ -254,3 +256,6 @@ class ReleaseManager:
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
 
+    def latest_eap(self, version):
+        eap_versions = sorted(self.eap_versions, key=lambda s: Version(s))
+        return version in eap_versions[-1:]
