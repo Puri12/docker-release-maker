@@ -39,7 +39,7 @@ def test_version_sorting():
     
     x = Version('1.0.0-RC1')
     y = Version('1.0.0-RC2')
-    x = Version('1')
+    z = Version('1')
     assert x < y < z
 
 

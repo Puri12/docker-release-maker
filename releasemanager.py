@@ -26,7 +26,8 @@ class Version:
             self.minor = version_index.get(1, self.minor)
             self.patch = version_index.get(2, self.patch)
             self.build = version_index.get(3, self.build)
-            self.rtype = rtype
+            if len(rtype) > 0:
+                self.rtype = rtype
 
 
 def docker_tags(repo):
