@@ -1,5 +1,6 @@
 import concurrent.futures
 import dataclasses
+from enum import IntEnum
 import json
 import logging
 import re
@@ -10,24 +11,39 @@ import requests
 
 
 
+class VersionType(IntEnum):
+     MILESTONE = 0
+     BETA = 1
+     RELEASE_CANDIDATE = 2
+     RELEASE = 3
+
+
 @dataclasses.dataclass(order=True, unsafe_hash=True)
 class Version:
     major: [int,str] = 0
     minor: int = 0
     patch: int = 0
     build: int = 0
-    rtype: str = '~'
+    rtype: VersionType = VersionType.RELEASE
+    v_raw: str = ''
 
     def __post_init__(self):
         if isinstance(self.major, str):
+            self.v_raw = self.major
             version_str, _, rtype = self.major.partition('-')
             version_index = {i: int(v) for i, v in enumerate(version_str.split('.'))}
             self.major = version_index.get(0, self.major)
             self.minor = version_index.get(1, self.minor)
             self.patch = version_index.get(2, self.patch)
             self.build = version_index.get(3, self.build)
-            if len(rtype) > 0:
-                self.rtype = rtype
+            if 'beta' in rtype.lower():
+                self.rtype = VersionType.BETA
+            elif rtype.lower().startswith('rc'):
+                self.rtype = VersionType.RELEASE_CANDIDATE
+            elif rtype.lower().startswith('m'):
+                self.rtype = VersionType.MILESTONE
+            else:
+                self.rtype = VersionType.RELEASE
 
 
 def docker_tags(repo):

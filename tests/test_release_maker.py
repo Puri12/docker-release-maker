@@ -41,6 +41,11 @@ def test_version_sorting():
     y = Version('1.0.0-RC2')
     z = Version('1')
     assert x < y < z
+    
+    x = Version('1.0.0-m1')
+    y = Version('1.0.0-tinymcebeta')
+    z = Version('1.0.0-RC1')
+    assert x < y < z
 
 
 @mock.patch('releasemanager.docker.from_env')
@@ -411,6 +416,49 @@ def test_create_eap_releases(mocked_docker, mocked_docker_tags, mocked_eap_versi
         assert tag in caplog.text
     for tag in unexpected_tags:
         assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
+@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
+def test_create_eap_releases(mocked_docker, mocked_docker_tags, mocked_eap_versions, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+    rm.create_eap_releases()
+    expected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-m55"',
+        f'{refapp["docker_repo"]}:6.0.0-RC2',
+        'eap'
+    }
+    unexpected_tags = {
+        f'"{refapp["docker_repo"]}:6.0.0-RC1"',
+    }
+    for tag in expected_tags:
+        assert tag in caplog.text
+    for tag in unexpected_tags:
+        assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.docker_tags')
+@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
+def test_calculate_eap_tags(mocked_docker, mocked_docker_tags, mocked_eap_versions, refapp):
+    rm = ReleaseManager(**refapp)
+
+    test_tag = '6.0.0-RC1'
+    tags = rm.calculate_tags(test_tag)
+    expected_tags = {
+        '6.0.0-RC1', '6.0.0-RC1-jdk8', '6.0.0-RC1-ubuntu',
+    }
+    assert expected_tags == tags
+
+    test_tag = '6.0.0-RC2'
+    tags = rm.calculate_tags(test_tag)
+    expected_tags = {
+        '6.0.0-RC2', '6.0.0-RC2-jdk8', '6.0.0-RC2-ubuntu',
+        'eap', 'eap-jdk8', 'eap-ubuntu',
+    }
+    assert expected_tags == tags
 
 
 @mock.patch('releasemanager.docker.from_env')
