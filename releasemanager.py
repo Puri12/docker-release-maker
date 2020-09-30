@@ -1,5 +1,6 @@
 import concurrent.futures
 import dataclasses
+from enum import IntEnum
 import json
 import logging
 import re
@@ -10,23 +11,39 @@ import requests
 
 
 
+class VersionType(IntEnum):
+     MILESTONE = 0
+     BETA = 1
+     RELEASE_CANDIDATE = 2
+     RELEASE = 3
+
+
 @dataclasses.dataclass(order=True, unsafe_hash=True)
 class Version:
     major: [int,str] = 0
     minor: int = 0
     patch: int = 0
     build: int = 0
-    rtype: str = '~'
+    rtype: VersionType = VersionType.RELEASE
+    v_raw: str = ''
 
     def __post_init__(self):
         if isinstance(self.major, str):
+            self.v_raw = self.major
             version_str, _, rtype = self.major.partition('-')
             version_index = {i: int(v) for i, v in enumerate(version_str.split('.'))}
             self.major = version_index.get(0, self.major)
             self.minor = version_index.get(1, self.minor)
             self.patch = version_index.get(2, self.patch)
             self.build = version_index.get(3, self.build)
-            self.rtype = rtype
+            if 'beta' in rtype.lower():
+                self.rtype = VersionType.BETA
+            elif rtype.lower().startswith('rc'):
+                self.rtype = VersionType.RELEASE_CANDIDATE
+            elif rtype.lower().startswith('m'):
+                self.rtype = VersionType.MILESTONE
+            else:
+                self.rtype = VersionType.RELEASE
 
 
 def docker_tags(repo):
@@ -119,7 +136,7 @@ class ReleaseManager:
         self.release_versions = {v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version}
         self.eap_release_versions = {v for v in self.eap_versions
-                                 if self.start_version <= Version(v) < self.end_version}
+                                 if Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
     def create_releases(self):
@@ -223,6 +240,8 @@ class ReleaseManager:
         if self.latest_minor(version):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
+        if self.latest_eap(version):
+           version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
             if self.latest(version):
@@ -254,3 +273,6 @@ class ReleaseManager:
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
 
+    def latest_eap(self, version):
+        eap_versions = sorted(self.eap_versions, key=lambda s: Version(s))
+        return version in eap_versions[-1:]
