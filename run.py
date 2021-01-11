@@ -29,6 +29,8 @@ parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
 parser.add_argument('--create-eap', dest='create_eap', action='store_true')
+parser.add_argument('--create-eap', dest='create_eap', action='store_true')
+parser.add_argument('--test-latest', dest='test_latest', action='store_true')
 
 def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
@@ -50,6 +52,8 @@ def main(args):
         manager.update_releases()
     if args.create_eap:
         manager.create_eap_releases()
+    if args.test_latest:
+        manager.test_latest()
 
 if __name__ == '__main__':
     args = parser.parse_args()

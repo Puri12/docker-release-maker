@@ -109,12 +109,17 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
+def run_tests(script, image):
+    args = [script, image.id]
+    logging.info(f"Running {script} with command '{cmd}', arguments {args}")
+    os.execv(script, args)
+
 
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes):
+                 mac_product_key, tag_suffixes, test_script=None):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -138,17 +143,27 @@ class ReleaseManager:
         self.eap_release_versions = {v for v in self.eap_versions
                                  if Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
+        self.test_script = test_script
 
     def create_releases(self):
         logging.info('##### Creating new releases #####')
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
+    def test_latest(self, ):
+        image = self._build_image(self.mac_versions[0])
+         return self.test_release(image)
+
+    def test_release(self, image):
+        if not self.test_script:
+            return True
+        return run_tests(self.test_script, image)
+
     def update_releases(self):
         logging.info('##### Updating existing releases #####')
         versions_to_build = self.release_versions
         return self.build_releases(versions_to_build)
-    
+
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
         versions_to_build = self.unbuilt_eap_versions()
@@ -197,7 +212,7 @@ class ReleaseManager:
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
-            
+
             max_retries = 5
             for i in range(1, max_retries+1):
                 try:
@@ -224,7 +239,7 @@ class ReleaseManager:
                     versions.add(v)
         logging.info(versions)
         return versions
-    
+
     def unbuilt_eap_versions(self):
         if self.default_release:
             return self.eap_release_versions - self.docker_tags
@@ -267,14 +282,14 @@ class ReleaseManager:
 
     def latest_major(self, version):
         major_version = version.split('.')[0]
-        major_versions = [v for v in self.mac_versions 
+        major_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_version}.')]
         major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in major_versions[-1:]
 
     def latest_minor(self, version):
         major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.mac_versions 
+        minor_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_minor_version}.')]
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
