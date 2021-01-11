@@ -170,8 +170,8 @@ class ReleaseManager:
             exc = build.exception()
             if exc is not None:
                 raise exc
-            
-    def _build_release(self, version):
+
+    def _build_image(self, version):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
@@ -188,6 +188,12 @@ class ReleaseManager:
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
             raise exc
+
+        return image
+
+    def _build_release(self, version):
+        image = self._build_image(version)
+
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
