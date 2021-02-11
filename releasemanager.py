@@ -8,6 +8,7 @@ import time
 
 import docker
 import requests
+import subprocess
 
 
 
@@ -108,13 +109,11 @@ def str2bool(v):
 def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
-
-
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes):
+                 mac_product_key, tag_suffixes, push_image, test_script):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -128,6 +127,8 @@ class ReleaseManager:
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
+        self.push_image = push_image
+        self.test_script = test_script
         self.executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
         )
@@ -170,7 +171,32 @@ class ReleaseManager:
             exc = build.exception()
             if exc is not None:
                 raise exc
-            
+
+    def _push_release(self, release):
+        if self.push_image:
+            max_retries = 5
+            for i in range(1, max_retries+1):
+                try:
+                    logging.info(f'Pushing tag "{release}"')
+                    self.docker_cli.images.push(release)
+                except requests.exceptions.ConnectionError as e:
+                    if i > max_retries:
+                        logging.error(f'Push failed for tag "{release}"')
+                        raise e
+                    logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
+                    time.sleep(i)
+                else:
+                    logging.info(f'Pushing tag "{release}" succeeded!')
+                    break
+
+    def _run_test_script(self, release):
+        if self.test_script != None:
+            script_command = [self.test_script, release]
+            # run provided test script - terminate with error if the test failed
+            proc = subprocess.run(script_command)
+            if proc.returncode != 0:
+                sys.exit(1)
+
     def _build_release(self, version):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
@@ -188,24 +214,16 @@ class ReleaseManager:
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
             raise exc
+
+
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
-            
-            max_retries = 5
-            for i in range(1, max_retries+1):
-                try:
-                    logging.info(f'Pushing tag "{release}"')
-                    self.docker_cli.images.push(release)
-                except requests.exceptions.ConnectionError as e:
-                    if i > max_retries:
-                        logging.error(f'Push failed for tag "{release}"')
-                        raise e
-                    logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
-                    time.sleep(i)
-                else:
-                    logging.info(f'Pushing tag "{release}" succeeded!')
-                    break
+
+            # script will terminated with error if the test failed
+            _run_test_script(release)
+
+            self._push_release(release)
 
     def unbuilt_release_versions(self):
         if self.default_release:
