@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
 parser.add_argument('--create-eap', dest='create_eap', action='store_true')
-parser.add_argument('--push-image', dest='push_image', action='store_true')
+parser.add_argument('--no-push', dest='no_push', action='store_false')
 parser.add_argument('--test-script', dest='test_script', help='The full path to the test script that need to run before docker push.')
 
 def main(args):
@@ -48,7 +48,7 @@ def main(args):
                              dockerfile_version_arg=DOCKERFILE_VERSION_ARG,
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES,
-                             push_image=args.push_image,
+                             no_push=args.no_push,
                              test_script=args.test_script)
     if args.create:
         manager.create_releases()

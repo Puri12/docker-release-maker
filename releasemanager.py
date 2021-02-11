@@ -113,7 +113,7 @@ class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_image, test_script):
+                 mac_product_key, tag_suffixes, no_push, test_script):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -127,7 +127,7 @@ class ReleaseManager:
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
-        self.push_image = push_image
+        self.no_push = no_push
         self.test_script = test_script
         self.executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
@@ -173,25 +173,27 @@ class ReleaseManager:
                 raise exc
 
     def _push_release(self, release):
-        if self.push_image:
-            max_retries = 5
-            for i in range(1, max_retries+1):
-                try:
-                    logging.info(f'Pushing tag "{release}"')
-                    self.docker_cli.images.push(release)
-                except requests.exceptions.ConnectionError as e:
-                    if i > max_retries:
-                        logging.error(f'Push failed for tag "{release}"')
-                        raise e
-                    logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
-                    time.sleep(i)
-                else:
-                    logging.info(f'Pushing tag "{release}" succeeded!')
-                    break
+        if self.no_push:
+            return
+        max_retries = 5
+        for i in range(1, max_retries+1):
+            try:
+                logging.info(f'Pushing tag "{release}"')
+                self.docker_cli.images.push(release)
+            except requests.exceptions.ConnectionError as e:
+                if i > max_retries:
+                    logging.error(f'Push failed for tag "{release}"')
+                    raise e
+                logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
+                time.sleep(i)
+            else:
+                logging.info(f'Pushing tag "{release}" succeeded!')
+                break
 
     def _run_test_script(self, release):
         if self.test_script != None:
             script_command = [self.test_script, release]
+
             # run provided test script - terminate with error if the test failed
             proc = subprocess.run(script_command)
             if proc.returncode != 0:
