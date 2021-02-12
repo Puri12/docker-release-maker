@@ -109,7 +109,7 @@ def str2bool(v):
 def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
-def _run_test_script(self, release, test_script):
+def _run_test_script(release, test_script):
     if test_script != None:
         if not os.path.exists(test_script):
             print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
