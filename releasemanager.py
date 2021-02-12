@@ -8,7 +8,7 @@ import time
 
 import docker
 import requests
-import subprocess
+import subprocess, sys
 
 
 
@@ -217,13 +217,12 @@ class ReleaseManager:
             )
             raise exc
 
+        # script will terminated with error if the test failed
+        self._run_test_script(image.id)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
-
-            # script will terminated with error if the test failed
-            self._run_test_script(release)
 
             self._push_release(release)
 
