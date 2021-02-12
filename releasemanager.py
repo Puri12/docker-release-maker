@@ -8,7 +8,7 @@ import time
 
 import docker
 import requests
-import subprocess, sys
+import subprocess, sys, os
 
 
 
@@ -192,6 +192,9 @@ class ReleaseManager:
 
     def _run_test_script(self, release):
         if self.test_script != None:
+            if not os.path.isfile(self.test_script):
+                print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
+                return
             script_command = [self.test_script, release]
 
             # run provided test script - terminate with error if the test failed

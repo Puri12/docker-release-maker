@@ -15,6 +15,6 @@ def refapp():
         'mac_product_key': 'bitbucket',
         'tag_suffixes': 'jdk8,ubuntu'.split(','),
         'no_push': False,
-        'test_script': 'ls',
+        'test_script': None,
     }
     return app
