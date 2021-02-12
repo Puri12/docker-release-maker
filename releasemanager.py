@@ -109,6 +109,18 @@ def str2bool(v):
 def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
+def _run_test_script(self, release, test_script):
+    if test_script != None:
+        if not os.path.exists(test_script):
+            print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
+            return
+        script_command = [test_script, release]
+
+        # run provided test script - terminate with error if the test failed
+        proc = subprocess.run(script_command)
+        if proc.returncode != 0:
+            sys.exit(1)
+
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
@@ -190,18 +202,6 @@ class ReleaseManager:
                 logging.info(f'Pushing tag "{release}" succeeded!')
                 break
 
-    def _run_test_script(self, release):
-        if self.test_script != None:
-            if not os.path.exists(self.test_script):
-                print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
-                return
-            script_command = [self.test_script, release]
-
-            # run provided test script - terminate with error if the test failed
-            proc = subprocess.run(script_command)
-            if proc.returncode != 0:
-                sys.exit(1)
-
     def _build_release(self, version):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
@@ -221,7 +221,7 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        self._run_test_script(image.id)
+        _run_test_script(image.id, self.test_script)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
