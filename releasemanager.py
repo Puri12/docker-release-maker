@@ -287,14 +287,14 @@ class ReleaseManager:
 
     def latest_major(self, version):
         major_version = version.split('.')[0]
-        major_versions = [v for v in self.mac_versions 
+        major_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_version}.')]
         major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in major_versions[-1:]
 
     def latest_minor(self, version):
         major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.mac_versions 
+        minor_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_minor_version}.')]
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
