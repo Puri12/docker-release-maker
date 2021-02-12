@@ -192,7 +192,7 @@ class ReleaseManager:
 
     def _run_test_script(self, release):
         if self.test_script != None:
-            if not os.path.isfile(self.test_script):
+            if not os.path.exists(self.test_script):
                 print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
                 return
             script_command = [self.test_script, release]
