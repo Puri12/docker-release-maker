@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import subprocess
 
 from releasemanager import ReleaseManager, str2bool
 
@@ -20,7 +21,8 @@ DOCKERFILE = os.environ.get('DOCKERFILE')
 DOCKERFILE_BUILDARGS = os.environ.get('DOCKERFILE_BUILDARGS')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
-SNYK_TOKEN = os.environ.get('SNYK_TOKEN')  # Assumption is that SNYK_TOKEN is already set on the environment
+SNYK_TOKEN = os.environ.get('SNYK_TOKEN')  # Assumption is that SNYK_TOKEN is already set
+INTEGERATION_TEST = './integration_test.sh' # default script file for integration test
 suffixes = os.environ.get('TAG_SUFFIXES')
 if suffixes is not None:
     suffixes = suffixes.split(',')
@@ -37,7 +39,10 @@ def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
         logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
-
+    if args.test_script != None :
+        INTEGERATION_TEST = args.test_script
+    if SNYK_TOKEN != None :
+        subprocess.run(f'snyk auth {SNYK_TOKEN}'.split())
     manager = ReleaseManager(start_version=START_VERSION,
                              end_version=END_VERSION,
                              concurrent_builds=CONCURRENT_BUILDS,
@@ -49,7 +54,7 @@ def main(args):
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES,
                              no_push=args.no_push,
-                             test_script=args.test_script)
+                             test_script=INTEGERATION_TEST)
     if args.create:
         manager.create_releases()
     if args.update:
