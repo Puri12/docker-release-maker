@@ -2,7 +2,7 @@ pipelines:
   branches:
     master:
       - step:
-          name: Bitbucket JDK 8 Ubuntu
+          name: Build/test/push release-maker image
           services:
             - docker
           script:
@@ -11,11 +11,16 @@ pipelines:
             - snyk auth @SNYK_TOKEN
             - snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
             - docker push atlassian/docker-release-maker:latest
-  pull-requests:
+            - snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
+
     '**':
       - step:
+          name: Build/test release-maker image
           services:
             - docker
           script:
             - docker build -t "drm:dev" .
             - docker run --rm drm:dev py.test
+
+            - docker build -t atlassian/docker-release-maker:localtest .
+            - snyk container test atlassian/docker-release-maker:localtest --severity-threshold=high
