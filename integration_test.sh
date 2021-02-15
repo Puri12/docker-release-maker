@@ -1,11 +1,14 @@
-# required parameter: docker image to test
-TEST_RESULT=0
+#!/bin/sh
 
 if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: integration_test.sh <docker image>"
+    echo "No docker image supplied. Syntax: integration_test.sh <docker image> ['true' if no-push]"
     exit 1
 fi
 
+image=$1
+no_push=${1:-false}
+
+TEST_RESULT=0
 check_for_failure() {
     if [ $1 -ne 0 ]; then
         TEST_RESULT=$1
@@ -26,6 +29,7 @@ if [[ -z "${SNYK_TOKEN}" ]]; then
     exit 1
 fi
 snyk auth $SNYK_TOKEN
+
 # Run test command: perform security scan - ignoring low and medium vulnerabilities
 snyk container test $1 --severity-threshold=high
 # capture test result:
@@ -34,6 +38,5 @@ exit_code=$?
 check_for_failure $exit_code
 
 # Next test can start here following the mentioned pattern:
-
 
 exit $TEST_RESULT
