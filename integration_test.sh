@@ -1,12 +1,11 @@
 #!/bin/sh
 
 if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: integration_test.sh <docker image> ['true' if no-push]"
+    echo "No docker image supplied. Syntax: integration_test.sh <docker image> ['true' if no a published image]"
     exit 1
 fi
-
 image=$1
-no_push=${1:-false}
+no_push=${2:-false}
 
 TEST_RESULT=0
 check_for_failure() {
@@ -30,13 +29,19 @@ if [[ -z "${SNYK_TOKEN}" ]]; then
 fi
 snyk auth $SNYK_TOKEN
 
-# Run test command: perform security scan - ignoring low and medium vulnerabilities
-snyk container test $1 --severity-threshold=high
-# capture test result:
+echo Performing security scan for image $image (high-impact vulnerabilities only)
+snyk container test $image --severity-threshold=high
 exit_code=$?
-# evaluate test result:
-check_for_failure $exit_code
+check_for_failure $?
 
-# Next test can start here following the mentioned pattern:
+# If we're releasing the image we should enable monitoring:
+if [ $no_push = false ]; then
+    echo Enabling Snyk monitoring for image $image
+    snyk container monitor $image --severity-threshold=high
+else
+    echo no_push flag set, skipping Snyk monitoring
+fi
+
+# TODO: Add integration testing here
 
 exit $TEST_RESULT
