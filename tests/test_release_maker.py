@@ -342,7 +342,7 @@ def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
     
     from run import main, parser
     args = parser.parse_args(['--create'])
-    args.test_script = None
+    INTEGRATION_TEST_SCRIPT = None
     main(args)
     
     expected_tags = {
@@ -377,7 +377,7 @@ def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
     
     from run import main, parser
     args = parser.parse_args(['--update'])
-    args.test_script = None
+    INTEGRATION_TEST_SCRIPT = None
     main(args)
     
     expected_tags = {

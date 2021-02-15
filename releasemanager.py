@@ -11,7 +11,6 @@ import requests
 import subprocess, sys, os
 
 
-
 class VersionType(IntEnum):
      MILESTONE = 0
      BETA = 1
@@ -27,6 +26,7 @@ class Version:
     build: int = 0
     rtype: VersionType = VersionType.RELEASE
     v_raw: str = ''
+
 
     def __post_init__(self):
         if isinstance(self.major, str):
@@ -83,6 +83,7 @@ jira_product_key_mapper = {
     'jira-servicedesk': 'jira servicedesk',
 }
 
+
 def eap_versions(product_key):
     feed_key = product_key
     description_key = None
@@ -99,17 +100,20 @@ def eap_versions(product_key):
         versions.add(version)
     return versions
 
+
 def str2bool(v):
     if str(v).lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     return False
 
+
 def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
+
 def _run_test_script(release, test_script):
     if test_script != None:
-        print(f'running integration test: {test_script}')
+        logging.info(f"Running integration test: '{test_script}'")
         if os.path.exists(test_script):
             script_command = [test_script, release]
 
@@ -118,14 +122,14 @@ def _run_test_script(release, test_script):
             if proc.returncode != 0:
                 sys.exit(1)
         else:
-            print ("**Integration test is bypassed! '{test_script}' is not found! ")
+            logging.warning(f"Integration test is bypassed! '{test_script}' does not existed!")
 
 
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, no_push, test_script):
+                 mac_product_key, tag_suffixes, push_docker, test_script):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -139,7 +143,7 @@ class ReleaseManager:
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
-        self.no_push = no_push
+        self.push_docker = push_docker
         self.test_script = test_script
         self.executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
@@ -152,20 +156,24 @@ class ReleaseManager:
                                  if Version(v) < self.end_version}
         self.tag_suffixes = set(tag_suffixes or set())
 
+
     def create_releases(self):
         logging.info('##### Creating new releases #####')
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
+
     def update_releases(self):
         logging.info('##### Updating existing releases #####')
         versions_to_build = self.release_versions
         return self.build_releases(versions_to_build)
-    
+
+
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
         versions_to_build = self.unbuilt_eap_versions()
         return self.build_releases(versions_to_build)
+
 
     def build_releases(self, versions_to_build):
         logging.info(
@@ -184,8 +192,9 @@ class ReleaseManager:
             if exc is not None:
                 raise exc
 
+
     def _push_release(self, release):
-        if self.no_push:
+        if not self.push_docker:
             return
         max_retries = 5
         for i in range(1, max_retries+1):
@@ -201,6 +210,7 @@ class ReleaseManager:
             else:
                 logging.info(f'Pushing tag "{release}" succeeded!')
                 break
+
 
     def _build_release(self, version):
         buildargs = {self.dockerfile_version_arg: version}
@@ -229,6 +239,7 @@ class ReleaseManager:
 
             self._push_release(release)
 
+
     def unbuilt_release_versions(self):
         if self.default_release:
             return self.release_versions - self.docker_tags
@@ -240,7 +251,8 @@ class ReleaseManager:
                     versions.add(v)
         logging.info(versions)
         return versions
-    
+
+
     def unbuilt_eap_versions(self):
         if self.default_release:
             return self.eap_release_versions - self.docker_tags
@@ -252,6 +264,7 @@ class ReleaseManager:
                     versions.add(v)
         logging.info(versions)
         return versions
+
 
     def calculate_tags(self, version):
         tags = set()
@@ -276,10 +289,12 @@ class ReleaseManager:
                 tags.add(suffix)
         return tags
 
+
     def latest(self, version):
         versions = [v for v in self.mac_versions]
         versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in versions[-1:]
+
 
     def latest_major(self, version):
         major_version = version.split('.')[0]
@@ -288,12 +303,14 @@ class ReleaseManager:
         major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in major_versions[-1:]
 
+
     def latest_minor(self, version):
         major_minor_version = '.'.join(version.split('.')[:2])
         minor_versions = [v for v in self.mac_versions 
                           if v.startswith(f'{major_minor_version}.')]
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]
+
 
     def latest_eap(self, version):
         eap_versions = sorted(self.eap_versions, key=lambda s: Version(s))

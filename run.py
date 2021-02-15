@@ -21,6 +21,8 @@ DOCKERFILE = os.environ.get('DOCKERFILE')
 DOCKERFILE_BUILDARGS = os.environ.get('DOCKERFILE_BUILDARGS')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
+INTEGRATION_TEST_SCRIPT = os.environ.get('INTEGRATION_TEST_SCRIPT')
+PUSH_DOCKER_IMAGE = os.environ.get('PUSH_DOCKER_IMAGE') if os.environ.get('PUSH_DOCKER_IMAGE')!=None else True
 
 suffixes = os.environ.get('TAG_SUFFIXES')
 if suffixes is not None:
@@ -31,14 +33,13 @@ parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
 parser.add_argument('--create-eap', dest='create_eap', action='store_true')
-parser.add_argument('--no-push', dest='no_push', action='store_true')
-parser.add_argument('--test-script', dest='test_script', default='integration_test.sh', help='The full path to the test script that need to run before docker push.')
 
 def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
         logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
 
+    logging.info(f'test script: {INTEGRATION_TEST_SCRIPT}')
     manager = ReleaseManager(start_version=START_VERSION,
                              end_version=END_VERSION,
                              concurrent_builds=CONCURRENT_BUILDS,
@@ -49,8 +50,8 @@ def main(args):
                              dockerfile_version_arg=DOCKERFILE_VERSION_ARG,
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES,
-                             no_push=args.no_push,
-                             test_script=args.test_script)
+                             push_docker=PUSH_DOCKER_IMAGE,
+                             test_script=INTEGRATION_TEST_SCRIPT)
     if args.create:
         manager.create_releases()
     if args.update:
