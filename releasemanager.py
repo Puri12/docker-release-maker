@@ -111,20 +111,6 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def _run_test_script(release, test_script):
-    if test_script != None:
-        logging.info(f"Running integration test: '{test_script}'")
-        if os.path.exists(test_script):
-            script_command = [test_script, release]
-
-            # run provided test script - terminate with error if the test failed
-            proc = subprocess.run(script_command)
-            if proc.returncode != 0:
-                sys.exit(1)
-        else:
-            logging.warning(f"Integration test is bypassed! '{test_script}' does not existed!")
-
-
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
@@ -225,13 +211,27 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        _run_test_script(image.id, self.test_script)
+        self._run_test_script(image.id)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
 
             self._push_release(release)
+
+    def _run_test_script(self, release):
+        if self.test_script != None:
+            print(f'Running integration test script: {self.test_script}')
+            if os.path.exists(self.test_script):
+                # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
+                script_command = [self.test_script, release, str(not self.no_push).lower()]
+
+                # run provided test script - terminate with error if the test failed
+                proc = subprocess.run(script_command)
+                if proc.returncode != 0:
+                    sys.exit(1)
+            else:
+                print ("**Integration test is bypassed! '{test_script}' is not found! ")
 
     def unbuilt_release_versions(self):
         if self.default_release:
