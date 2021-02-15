@@ -50,7 +50,7 @@ def main(args):
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES,
                              no_push=args.no_push,
-                             test_script=integration_test)
+                             test_script=args.test_script)
     if args.create:
         manager.create_releases()
     if args.update:
