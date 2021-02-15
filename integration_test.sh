@@ -5,7 +5,7 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 image=$1
-no_push=${2:-false}
+is_release=${2:-false}
 
 TEST_RESULT=0
 check_for_failure() {
@@ -21,27 +21,30 @@ check_for_failure() {
 # 4. evaluate test result (check_for_failure $exit_code)
 # repeat those steps for next test
 
-# TEST: SECURITY SCAN
-# Test preparation
-if [[ -z "${SNYK_TOKEN}" ]]; then
-    echo 'Security scan is interrupted because Snyk authentication token ($SNYK_TOKEN) is not defined!'
+echo "######## Security Scan ########" 
+
+if [ x"${SNYK_TOKEN}" = 'x' ]; then
+    echo 'Security scan is interrupted because Snyk authentication token (SNYK_TOKEN) is not defined!.'
     exit 1
 fi
+
+echo "Authenticating with Snyk..."
 snyk auth $SNYK_TOKEN
 
-echo Performing security scan for image $image (high-impact vulnerabilities only)
+echo "Performing security scan for image $image (high-impact vulnerabilities only)"
 snyk container test $image --severity-threshold=high
 exit_code=$?
 check_for_failure $?
 
 # If we're releasing the image we should enable monitoring:
-if [ $no_push = false ]; then
-    echo Enabling Snyk monitoring for image $image
+if [ $is_release = true ]; then
+    echo "Enabling Snyk monitoring for image $image"
     snyk container monitor $image --severity-threshold=high
 else
-    echo no_push flag set, skipping Snyk monitoring
+    echo "Publish flag is not set, skipping Snyk monitoring"
 fi
 
 # TODO: Add integration testing here
+#echo "######## Integration Testing ########" 
 
 exit $TEST_RESULT
