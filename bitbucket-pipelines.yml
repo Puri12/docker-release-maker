@@ -1,3 +1,5 @@
+image: atlassian/default-image:2
+
 pipelines:
   branches:
     master:
@@ -8,8 +10,11 @@ pipelines:
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - docker build -t atlassian/docker-release-maker:latest .
+
+            - npm install -g snyk
             - snyk auth @SNYK_TOKEN
             - snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
+
             - docker push atlassian/docker-release-maker:latest
             - snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
 
@@ -23,4 +28,6 @@ pipelines:
             - docker run --rm drm:dev py.test
 
             - docker build -t atlassian/docker-release-maker:localtest .
+
+            - npm install -g snyk
             - snyk container test atlassian/docker-release-maker:localtest --severity-threshold=high
