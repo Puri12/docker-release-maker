@@ -8,6 +8,7 @@ pipelines:
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - docker build -t atlassian/docker-release-maker:latest .
+            - snyk auth @SNYK_TOKEN
             - snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
             - docker push atlassian/docker-release-maker:latest
   pull-requests:

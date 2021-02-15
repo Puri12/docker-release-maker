@@ -7,7 +7,8 @@ import pytest
 
 from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version
 
-
+def dummy(a,b):
+    return
 
 def test_docker_tags(refapp):
     tags = docker_tags(refapp['docker_repo'])
@@ -330,10 +331,9 @@ def test_min_end_version(mocked_docker, mocked_docker_tags, mocked_mac_versions,
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
-@mock.patch('releasemanager._run_test_script')
 def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    
+    releasemanager._run_test_script=dummy
     for key, value in refapp.items():
         if value is None:
             continue
@@ -366,10 +366,9 @@ def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
-@mock.patch('releasemanager._run_test_script')
 def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    
+    releasemanager._run_test_script=dummy
     for key, value in refapp.items():
         if value is None:
             continue

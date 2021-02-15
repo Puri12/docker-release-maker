@@ -21,7 +21,6 @@ DOCKERFILE = os.environ.get('DOCKERFILE')
 DOCKERFILE_BUILDARGS = os.environ.get('DOCKERFILE_BUILDARGS')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
-SNYK_TOKEN = os.environ.get('SNYK_TOKEN')  # Assumption is that SNYK_TOKEN is already set
 
 suffixes = os.environ.get('TAG_SUFFIXES')
 if suffixes is not None:
@@ -32,18 +31,14 @@ parser = argparse.ArgumentParser(description='Manage docker releases')
 parser.add_argument('--create', dest='create', action='store_true')
 parser.add_argument('--update', dest='update', action='store_true')
 parser.add_argument('--create-eap', dest='create_eap', action='store_true')
-parser.add_argument('--no-push', dest='no_push', action='store_false')
-parser.add_argument('--test-script', dest='test_script', help='The full path to the test script that need to run before docker push.')
+parser.add_argument('--no-push', dest='no_push', action='store_true')
+parser.add_argument('--test-script', dest='test_script', default='integration_test.sh', help='The full path to the test script that need to run before docker push.')
 
 def main(args):
     if None in [START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, MAC_PRODUCT_KEY]:
         logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
-    integration_test = './integration_test.sh' # default script file for integration test
-    if args.test_script != None :
-        integration_test = args.test_script
-    if SNYK_TOKEN != None :
-        subprocess.run(f'snyk auth {SNYK_TOKEN}'.split())
+
     manager = ReleaseManager(start_version=START_VERSION,
                              end_version=END_VERSION,
                              concurrent_builds=CONCURRENT_BUILDS,

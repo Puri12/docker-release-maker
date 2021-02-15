@@ -99,27 +99,26 @@ def eap_versions(product_key):
         versions.add(version)
     return versions
 
-
 def str2bool(v):
     if str(v).lower() in ('yes', 'true', 't', 'y', '1'):
         return True
     return False
 
-
 def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 def _run_test_script(release, test_script):
-    if test_script != None:
-        if not os.path.exists(test_script):
-            print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
-            return
+    print(f'running integration test: {test_script}')
+    if os.path.exists(test_script):
         script_command = [test_script, release]
 
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
         if proc.returncode != 0:
             sys.exit(1)
+    else:
+        print ("**Integration test is bypassed! '{test_script}' is not found! ")
+
 
 class ReleaseManager:
 
