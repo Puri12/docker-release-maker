@@ -181,7 +181,7 @@ class ReleaseManager:
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
-                print("Test job threw an exception; cancelling outstanding jobs...")
+                logging.error("Test job threw an exception; cancelling outstanding jobs...")
                 self.executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
@@ -232,15 +232,15 @@ class ReleaseManager:
 
     def _run_test_script(self, image):
         if self.test_script is None or self.test_script == '':
-            print("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
+            logging.warning("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
             return
 
         if not os.path.exists(self.test_script):
             msg = f"Test script '{self.test_script}' does not exist; failing!"
-            print (msg)
+            logging.error (msg)
             raise EnvironmentException(msg)
 
-        print(f'Running integration test script: {self.test_script}')
+        logging.info(f'Running integration test script: {self.test_script}')
         # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
         script_command = [self.test_script, image.id, str(self.push_docker).lower()]
 
@@ -248,7 +248,7 @@ class ReleaseManager:
         proc = subprocess.run(script_command)
         if proc.returncode != 0:
             msg = f"Test script '{self.test_script}' exited with non-zero; failing!"
-            print(msg)
+            logging.error(msg)
             raise TestFailedException(msg)
 
     def unbuilt_release_versions(self):
