@@ -211,7 +211,7 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        self._run_test_script(image.id)
+        self._run_test_script(image)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
@@ -219,12 +219,12 @@ class ReleaseManager:
 
             self._push_release(release)
 
-    def _run_test_script(self, release):
+    def _run_test_script(self, image):
         if self.test_script != None:
             print(f'Running integration test script: {self.test_script}')
             if os.path.exists(self.test_script):
                 # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
-                script_command = [self.test_script, release, str(not self.no_push).lower()]
+                script_command = [self.test_script, image.id, str(self.push_docker).lower()]
 
                 # run provided test script - terminate with error if the test failed
                 proc = subprocess.run(script_command)
