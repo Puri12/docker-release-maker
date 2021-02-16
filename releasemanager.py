@@ -231,7 +231,7 @@ class ReleaseManager:
                 if proc.returncode != 0:
                     sys.exit(1)
             else:
-                print ("**Integration test is bypassed! '{test_script}' is not found! ")
+                print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
 
     def unbuilt_release_versions(self):
         if self.default_release:

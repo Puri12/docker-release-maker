@@ -19,7 +19,7 @@ echo "######## Security Scan ########"
 SEV_THRESHOLD=high
 
 if [ x"${SNYK_TOKEN}" = 'x' ]; then
-    echo 'Security scan is interrupted because Snyk authentication token (SNYK_TOKEN) is not defined!.'
+    echo 'Security scan is interrupted because Snyk authentication token (SNYK_TOKEN) is not defined!'
     exit 1
 fi
 
