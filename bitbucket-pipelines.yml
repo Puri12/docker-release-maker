@@ -33,4 +33,4 @@ pipelines:
             - nvm install node # Snyk needs a newer version
             - npm install -g snyk
             - snyk auth $SNYK_TOKEN
-            - snyk container test atlassian/docker-release-maker:localtest --severity-threshold=high
+            - snyk container test drm:dev --severity-threshold=high
