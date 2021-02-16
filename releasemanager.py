@@ -8,7 +8,9 @@ import time
 
 import docker
 import requests
-
+import subprocess
+import sys
+import os
 
 
 class VersionType(IntEnum):
@@ -44,7 +46,6 @@ class Version:
                 self.rtype = VersionType.MILESTONE
             else:
                 self.rtype = VersionType.RELEASE
-
 
 def docker_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
@@ -82,6 +83,7 @@ jira_product_key_mapper = {
     'jira-servicedesk': 'jira servicedesk',
 }
 
+
 def eap_versions(product_key):
     feed_key = product_key
     description_key = None
@@ -109,12 +111,25 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
+def _run_test_script(release, test_script):
+    if test_script != None:
+        logging.info(f"Running integration test: '{test_script}'")
+        if os.path.exists(test_script):
+            script_command = [test_script, release]
+
+            # run provided test script - terminate with error if the test failed
+            proc = subprocess.run(script_command)
+            if proc.returncode != 0:
+                sys.exit(1)
+        else:
+            logging.warning(f"Integration test is bypassed! '{test_script}' does not existed!")
+
 
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes):
+                 mac_product_key, tag_suffixes, push_docker, test_script):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -128,6 +143,8 @@ class ReleaseManager:
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
+        self.push_docker = push_docker
+        self.test_script = test_script
         self.executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
         )
@@ -148,7 +165,7 @@ class ReleaseManager:
         logging.info('##### Updating existing releases #####')
         versions_to_build = self.release_versions
         return self.build_releases(versions_to_build)
-    
+
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
         versions_to_build = self.unbuilt_eap_versions()
@@ -170,7 +187,25 @@ class ReleaseManager:
             exc = build.exception()
             if exc is not None:
                 raise exc
-            
+
+    def _push_release(self, release):
+        if not self.push_docker:
+            return
+        max_retries = 5
+        for i in range(1, max_retries+1):
+            try:
+                logging.info(f'Pushing tag "{release}"')
+                self.docker_cli.images.push(release)
+            except requests.exceptions.ConnectionError as e:
+                if i > max_retries:
+                    logging.error(f'Push failed for tag "{release}"')
+                    raise e
+                logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
+                time.sleep(i)
+            else:
+                logging.info(f'Pushing tag "{release}" succeeded!')
+                break
+
     def _build_release(self, version):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
@@ -188,24 +223,15 @@ class ReleaseManager:
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
             raise exc
+
+        # script will terminated with error if the test failed
+        _run_test_script(image.id, self.test_script)
+
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
-            
-            max_retries = 5
-            for i in range(1, max_retries+1):
-                try:
-                    logging.info(f'Pushing tag "{release}"')
-                    self.docker_cli.images.push(release)
-                except requests.exceptions.ConnectionError as e:
-                    if i > max_retries:
-                        logging.error(f'Push failed for tag "{release}"')
-                        raise e
-                    logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
-                    time.sleep(i)
-                else:
-                    logging.info(f'Pushing tag "{release}" succeeded!')
-                    break
+
+            self._push_release(release)
 
     def unbuilt_release_versions(self):
         if self.default_release:
@@ -218,7 +244,7 @@ class ReleaseManager:
                     versions.add(v)
         logging.info(versions)
         return versions
-    
+
     def unbuilt_eap_versions(self):
         if self.default_release:
             return self.eap_release_versions - self.docker_tags

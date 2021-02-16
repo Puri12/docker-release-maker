@@ -7,8 +7,6 @@ import pytest
 
 from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version
 
-
-
 def test_docker_tags(refapp):
     tags = docker_tags(refapp['docker_repo'])
     assert len(tags) > 0
@@ -332,7 +330,6 @@ def test_min_end_version(mocked_docker, mocked_docker_tags, mocked_mac_versions,
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    
     for key, value in refapp.items():
         if value is None:
             continue
@@ -345,6 +342,7 @@ def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
     
     from run import main, parser
     args = parser.parse_args(['--create'])
+    INTEGRATION_TEST_SCRIPT = None
     main(args)
     
     expected_tags = {
@@ -367,7 +365,6 @@ def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    
     for key, value in refapp.items():
         if value is None:
             continue
@@ -380,6 +377,7 @@ def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
     
     from run import main, parser
     args = parser.parse_args(['--update'])
+    INTEGRATION_TEST_SCRIPT = None
     main(args)
     
     expected_tags = {

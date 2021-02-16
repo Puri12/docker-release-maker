@@ -14,5 +14,7 @@ def refapp():
         'dockerfile_version_arg': 'BITBUCKET_VERSION',
         'mac_product_key': 'bitbucket',
         'tag_suffixes': 'jdk8,ubuntu'.split(','),
+        'push_docker': True,
+        'test_script': None,
     }
     return app
