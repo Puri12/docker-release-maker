@@ -47,6 +47,11 @@ class Version:
             else:
                 self.rtype = VersionType.RELEASE
 
+
+class EnvironmentException(Exception): pass
+class TestFailedException(Exception): pass
+
+
 def docker_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
@@ -172,6 +177,7 @@ class ReleaseManager:
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
+                self.executor.shutdown(cancel_futures=True)
                 raise exc
 
     def _push_release(self, release):
@@ -225,8 +231,9 @@ class ReleaseManager:
             return
 
         if not os.path.exists(self.test_script):
-            print ("Test script '{self.test_script}' is not found; failing!")
-            exit(2)
+            msg = "Test script '{self.test_script}' does not exist; failing!"
+            print (msg)
+            raise EnvironmentException(msg)
 
         print(f'Running integration test script: {self.test_script}')
         # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
@@ -235,7 +242,9 @@ class ReleaseManager:
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
         if proc.returncode != 0:
-            sys.exit(1)
+            msg = "Test script '{self.test_script}' exited with non-zero; failing!"
+            print(msg)
+            raise TestFailedException(msg)
 
     def unbuilt_release_versions(self):
         if self.default_release:
