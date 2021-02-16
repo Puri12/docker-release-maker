@@ -177,7 +177,7 @@ class ReleaseManager:
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
-                self.executor.shutdown(cancel_futures=True)
+                self.executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
     def _push_release(self, release):
