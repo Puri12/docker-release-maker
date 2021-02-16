@@ -29,17 +29,17 @@ def test_version_sorting():
     y = Version('1.20.0')
     z = Version('1.100')
     assert x < y < z
-    
+
     x = Version('1')
     y = Version('1.99.99')
     z = Version('2')
     assert x < y < z
-    
+
     x = Version('1.0.0-RC1')
     y = Version('1.0.0-RC2')
     z = Version('1')
     assert x < y < z
-    
+
     x = Version('1.0.0-m1')
     y = Version('1.0.0-tinymcebeta')
     z = Version('1.0.0-RC1')
@@ -339,12 +339,12 @@ def test_run_py_create(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
             os.environ[key.upper()] = ','.join(value)
         else:
             os.environ[key.upper()] = value
-    
+    os.environ['INTEGRATION_TEST_SCRIPT'] = ""
+
     from run import main, parser
     args = parser.parse_args(['--create'])
-    INTEGRATION_TEST_SCRIPT = None
     main(args)
-    
+
     expected_tags = {
         f'"{refapp["docker_repo"]}:6.5.4"',
         f'{refapp["docker_repo"]}:6.7.8'
@@ -374,12 +374,12 @@ def test_run_py_update(mocked_docker, mocked_docker_tags, mocked_mac_versions, c
             os.environ[key.upper()] = ','.join(value)
         else:
             os.environ[key.upper()] = value
-    
+    os.environ['INTEGRATION_TEST_SCRIPT'] = ""
+
     from run import main, parser
     args = parser.parse_args(['--update'])
-    INTEGRATION_TEST_SCRIPT = None
     main(args)
-    
+
     expected_tags = {
         f'"{refapp["docker_repo"]}:6.5.4"',
         f'"{refapp["docker_repo"]}:6.7.7"',
