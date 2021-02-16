@@ -25,12 +25,10 @@ pipelines:
           services:
             - docker
           script:
-            - docker build -t "drm:dev" .
-            - docker run --rm drm:dev py.test
-
-            - docker build -t atlassian/docker-release-maker:localtest .
+            - docker build -t docker-release-maker:local .
+            - docker run --rm docker-release-maker:local py.test
 
             - nvm install node # Snyk needs a newer version
             - npm install -g snyk
             - snyk auth $SNYK_TOKEN
-            - snyk container test drm:dev --severity-threshold=high
+            - snyk container test docker-release-maker:local --severity-threshold=high
