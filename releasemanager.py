@@ -48,8 +48,12 @@ class Version:
                 self.rtype = VersionType.RELEASE
 
 
-class EnvironmentException(Exception): pass
-class TestFailedException(Exception): pass
+class EnvironmentException(Exception):
+    pass
+
+
+class TestFailedException(Exception):
+    pass
 
 
 def docker_tags(repo):
@@ -177,6 +181,7 @@ class ReleaseManager:
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
+                print("Test job threw an exception; cancelling outstanding jobs...")
                 self.executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
@@ -231,7 +236,7 @@ class ReleaseManager:
             return
 
         if not os.path.exists(self.test_script):
-            msg = "Test script '{self.test_script}' does not exist; failing!"
+            msg = f"Test script '{self.test_script}' does not exist; failing!"
             print (msg)
             raise EnvironmentException(msg)
 
@@ -242,7 +247,7 @@ class ReleaseManager:
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
         if proc.returncode != 0:
-            msg = "Test script '{self.test_script}' exited with non-zero; failing!"
+            msg = f"Test script '{self.test_script}' exited with non-zero; failing!"
             print(msg)
             raise TestFailedException(msg)
 
