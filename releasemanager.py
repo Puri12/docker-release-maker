@@ -220,18 +220,22 @@ class ReleaseManager:
             self._push_release(release)
 
     def _run_test_script(self, image):
-        if self.test_script != None:
-            print(f'Running integration test script: {self.test_script}')
-            if os.path.exists(self.test_script):
-                # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
-                script_command = [self.test_script, image.id, str(self.push_docker).lower()]
+        if self.test_script is None or self.test_script == '':
+            print("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
+            return
 
-                # run provided test script - terminate with error if the test failed
-                proc = subprocess.run(script_command)
-                if proc.returncode != 0:
-                    sys.exit(1)
-            else:
-                print ("**Integration test is bypassed! '{self.test_script}' is not found! ")
+        if not os.path.exists(self.test_script):
+            print ("Test script '{self.test_script}' is not found; failing!")
+            exit(2)
+
+        print(f'Running integration test script: {self.test_script}')
+        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
+        script_command = [self.test_script, image.id, str(self.push_docker).lower()]
+
+        # run provided test script - terminate with error if the test failed
+        proc = subprocess.run(script_command)
+        if proc.returncode != 0:
+            sys.exit(1)
 
     def unbuilt_release_versions(self):
         if self.default_release:
