@@ -247,7 +247,7 @@ class ReleaseManager:
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
         if proc.returncode != 0:
-            msg = f"Test script '{self.test_script}' exited with non-zero; failing!"
+            msg = f"Test script '{self.test_script}' exited with non-zero ({proc.returncode}); failing!"
             logging.error(msg)
             raise TestFailedException(msg)
 
