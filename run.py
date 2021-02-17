@@ -22,7 +22,7 @@ DOCKERFILE_BUILDARGS = os.environ.get('DOCKERFILE_BUILDARGS')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 PUSH_DOCKER_IMAGE = str2bool(os.environ.get('PUSH_DOCKER_IMAGE', True))
-INTEGRATION_TEST_SCRIPT = os.environ.get('INTEGRATION_TEST_SCRIPT')
+INTEGRATION_TEST_SCRIPT = os.environ.get('INTEGRATION_TEST_SCRIPT', '/usr/src/app/integration_test.sh')
 
 suffixes = os.environ.get('TAG_SUFFIXES')
 if suffixes is not None:

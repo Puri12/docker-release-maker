@@ -1,21 +1,34 @@
+image: atlassian/default-image:2
+
 pipelines:
   branches:
     master:
       - step:
-          name: Bitbucket JDK 8 Ubuntu
+          name: Build/test/push release-maker image
           services:
             - docker
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - docker build -t atlassian/docker-release-maker:latest .
-            - snyk auth @SNYK_TOKEN
+
+            - nvm install node # Snyk needs a newer version
+            - npm install -g snyk
+            - snyk auth $SNYK_TOKEN
             - snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
+
             - docker push atlassian/docker-release-maker:latest
-  pull-requests:
+            - snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
+
     '**':
       - step:
+          name: Build/test release-maker image
           services:
             - docker
           script:
-            - docker build -t "drm:dev" .
-            - docker run --rm drm:dev py.test
+            - docker build -t docker-release-maker:local .
+            - docker run --rm docker-release-maker:local py.test
+
+            - nvm install node # Snyk needs a newer version
+            - npm install -g snyk
+            - snyk auth $SNYK_TOKEN
+            - snyk container test docker-release-maker:local --severity-threshold=high

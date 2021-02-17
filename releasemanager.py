@@ -47,6 +47,15 @@ class Version:
             else:
                 self.rtype = VersionType.RELEASE
 
+
+class EnvironmentException(Exception):
+    pass
+
+
+class TestFailedException(Exception):
+    pass
+
+
 def docker_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
@@ -111,20 +120,6 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def _run_test_script(release, test_script):
-    if test_script != None:
-        logging.info(f"Running integration test: '{test_script}'")
-        if os.path.exists(test_script):
-            script_command = [test_script, release]
-
-            # run provided test script - terminate with error if the test failed
-            proc = subprocess.run(script_command)
-            if proc.returncode != 0:
-                sys.exit(1)
-        else:
-            logging.warning(f"Integration test is bypassed! '{test_script}' does not existed!")
-
-
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
@@ -186,6 +181,8 @@ class ReleaseManager:
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
+                logging.error("Test job threw an exception; cancelling outstanding jobs...")
+                self.executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
     def _push_release(self, release):
@@ -225,13 +222,34 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        _run_test_script(image.id, self.test_script)
+        self._run_test_script(image)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
             image.tag(self.docker_repo, tag=tag)
 
             self._push_release(release)
+
+    def _run_test_script(self, image):
+        if self.test_script is None or self.test_script == '':
+            logging.warning("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
+            return
+
+        if not os.path.exists(self.test_script):
+            msg = f"Test script '{self.test_script}' does not exist; failing!"
+            logging.error (msg)
+            raise EnvironmentException(msg)
+
+        logging.info(f'Running integration test script: {self.test_script}')
+        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
+        script_command = [self.test_script, image.id, str(self.push_docker).lower()]
+
+        # run provided test script - terminate with error if the test failed
+        proc = subprocess.run(script_command)
+        if proc.returncode != 0:
+            msg = f"Test script '{self.test_script}' exited with non-zero ({proc.returncode}); failing!"
+            logging.error(msg)
+            raise TestFailedException(msg)
 
     def unbuilt_release_versions(self):
         if self.default_release:
@@ -287,14 +305,14 @@ class ReleaseManager:
 
     def latest_major(self, version):
         major_version = version.split('.')[0]
-        major_versions = [v for v in self.mac_versions 
+        major_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_version}.')]
         major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in major_versions[-1:]
 
     def latest_minor(self, version):
         major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.mac_versions 
+        minor_versions = [v for v in self.mac_versions
                           if v.startswith(f'{major_minor_version}.')]
         minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
         return version in minor_versions[-1:]

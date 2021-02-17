@@ -1,10 +1,11 @@
 ## Overview
 
-The Atlassian Docker Release Maker is a tool for automating the building, tagging and 
-publishing of Docker images for Atlassian's Server products. It uses the Atlassian
-Marketplace and Docker Hub API's to determine available and published versions, and has
-the ability to apply complex tagging to images, pass custom build arguments to builds
-and select specified Dockerfiles for building.
+The Atlassian Docker Release Maker is a tool for automating the building,
+testing, tagging and publishing of Docker images for Atlassian's Server
+products. It uses the Atlassian Marketplace and Docker Hub API's to determine
+available and published versions, and has the ability to apply complex tagging
+to images, pass custom build arguments to builds and select specified
+Dockerfiles for building.
 
 
 ## Configuration
@@ -134,7 +135,21 @@ inside this repository.
    `TAG_SUFFIXES='ubuntu,jdk8'`. See "Tagging" for more info on how tags are calculated 
    and applied. 
 
+* `PUSH_DOCKER_IMAGE` (default: true)
 
+  Whether to push the image to the specified repo. Usually set to false on
+  PRs/branches.
+
+* `INTEGRATION_TEST_SCRIPT`: (default: '/usr/src/app/integration_test.sh')
+
+  The test script to run after the build of each image. If the script returns
+  non-zero the release process will end. It defaults to the
+  `integration_test.sh` script in this repository. This script performs security
+  scanning using the same tooling used by Atlassian internally, and run the
+  script `func-tests/run-functests` in the calling repository if available. The
+  `run-functests` script should accept a single parameter, the target image hash
+  or tag. See [the Jira container functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
+  for an example.
 
 ## Tagging
 
