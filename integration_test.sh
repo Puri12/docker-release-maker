@@ -15,6 +15,7 @@ check_for_failure() {
     fi
 }
 
+
 echo "######## Security Scan ########"
 SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
@@ -41,7 +42,17 @@ else
     echo "Publish flag is not set, skipping Snyk monitoring"
 fi
 
-# TODO: Add integration testing here
-#echo "######## Integration Testing ########"
+
+echo "######## Integration Testing ########"
+FUNCTEST_SCRIPT=${FUNCTEST_SCRIPT:-'./func-tests/run-functests'}
+if [ -x $FUNCTEST_SCRIPT ]; then
+    echo "Invoking ${FUNCTEST_SCRIPT} ${IMAGE}"
+    ${FUNCTEST_SCRIPT} $IMAGE
+    exit_code=$?
+    check_for_failure $exit_code
+else
+    echo "Testing script ${FUNCTEST_SCRIPT} doesn't exist or is not executable; skipping."
+fi
+
 
 exit $TEST_RESULT
