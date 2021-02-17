@@ -149,7 +149,8 @@ inside this repository.
   script `func-tests/run-functests` in the calling repository if available. The
   `run-functests` script should accept a single parameter, the target image hash
   or tag. See [the Jira container functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
-  for an example.
+  for an example. Optionally, this script can be overridden via the environment
+  variable `FUNCTEST_SCRIPT`.
 
 ## Tagging
 
