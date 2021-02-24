@@ -3,6 +3,7 @@ import dataclasses
 from enum import IntEnum
 import json
 import logging
+import packaging.version as ver
 import re
 import time
 
@@ -66,23 +67,27 @@ def docker_tags(repo):
     return tags
 
 
-def mac_versions(product_key, offset=0, limit=50):
-    logging.info(f'Retrieving Marketplace product versions for {product_key}')
+def mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
-    params = {'offset': offset, 'limit': limit}
+    params = {'offset': 0, 'limit': 50}
     versions = set()
+    page = 1
     while True:
+        logging.info(f'Retrieving Marketplace product versions for {product_key}: page {page}')
         r = requests.get(mac_url + request_url, params=params)
         version_data = r.json()
         for version in version_data['_embedded']['versions']:
             if all(d.isdigit() for d in version['name'].split('.')):
+                logging.info(f"got {version['name']}")
                 versions.add(version['name'])
         if 'next' not in version_data['_links']:
             break
         request_url = version_data['_links']['next']['href']
+        page += 1
         params = {}
-    return versions
+    logging.info(f'Found {len(versions)} versions')
+    return sorted(list(versions), reverse=True)
 
 
 eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
@@ -99,6 +104,7 @@ def eap_versions(product_key):
     if 'jira' in product_key:
         feed_key = 'jira'
         description_key = jira_product_key_mapper[product_key]
+        logging.info(f'Retrieving EAP versions for {product_key}')
     r = requests.get(f'https://my.atlassian.com/download/feeds/eap/{feed_key}.json')
     data = json.loads(r.text[10:-1])
     versions = set()
@@ -107,7 +113,8 @@ def eap_versions(product_key):
                 continue
         version = eap_version_pattern.search(item['description']).group(1)
         versions.add(version)
-    return versions
+    logging.info(f'Found {len(versions)} EAPs')
+    return sorted(list(versions), reverse=True)
 
 
 def str2bool(v):
@@ -120,11 +127,19 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
+def slice_job(versions, offset, total):
+    jsize = len(versions) / total
+    start = int(offset * jsize)
+    end = int(start + jsize)
+    return versions[start:end]
+
+
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, test_script):
+                 mac_product_key, tag_suffixes, push_docker, test_script,
+                 job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
@@ -140,16 +155,25 @@ class ReleaseManager:
         self.dockerfile_version_arg = dockerfile_version_arg
         self.push_docker = push_docker
         self.test_script = test_script
+        self.job_offset = job_offset
+        self.jobs_total = jobs_total
         self.executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
         )
+        self.tag_suffixes = set(tag_suffixes or set())
+
         self.mac_versions = mac_versions(mac_product_key)
         self.eap_versions = eap_versions(mac_product_key)
         self.release_versions = {v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version}
         self.eap_release_versions = {v for v in self.eap_versions
                                  if Version(v) < self.end_version}
-        self.tag_suffixes = set(tag_suffixes or set())
+
+        # If we're running batched just take 'our share'.
+        if job_offset is not None and jobs_total is not None:
+            self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
+
 
     def create_releases(self):
         logging.info('##### Creating new releases #####')
