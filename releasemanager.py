@@ -164,15 +164,17 @@ class ReleaseManager:
 
         self.mac_versions = mac_versions(mac_product_key)
         self.eap_versions = eap_versions(mac_product_key)
-        self.release_versions = {v for v in self.mac_versions
-                                 if self.start_version <= Version(v) < self.end_version}
-        self.eap_release_versions = {v for v in self.eap_versions
-                                 if Version(v) < self.end_version}
+        self.release_versions = [v for v in self.mac_versions
+                                 if self.start_version <= Version(v) < self.end_version]
+        self.eap_release_versions = [v for v in self.eap_versions
+                                 if Version(v) < self.end_version]
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
             self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
             self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
+        logging.info(f"Running release process for versions {self.release_versions}")
+        logging.info(f"Running EAP release process for versions {self.eap_release_versions}")
 
 
     def create_releases(self):
