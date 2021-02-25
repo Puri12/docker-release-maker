@@ -5,8 +5,10 @@ testing, tagging and publishing of Docker images for Atlassian's Server
 products. It uses the Atlassian Marketplace and Docker Hub API's to determine
 available and published versions, and has the ability to apply complex tagging
 to images, pass custom build arguments to builds and select specified
-Dockerfiles for building.
-
+Dockerfiles for building. As the generated Docker image is used as a run-time
+image for Atlassian product Docker-image build & test pipelines it also includes
+tools and dependencies, including Python test dependencies; see the
+[Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) for details.
 
 ## Configuration
 
