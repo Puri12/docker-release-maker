@@ -3,7 +3,6 @@ import dataclasses
 from enum import IntEnum
 import json
 import logging
-import packaging.version as ver
 import re
 import time
 
