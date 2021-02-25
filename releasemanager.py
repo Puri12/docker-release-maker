@@ -198,24 +198,24 @@ class ReleaseManager:
         if self.dockerfile is not None:
             logging.info(f'Using docker file "{self.dockerfile}"')
         if self.concurrent_builds > 1:
-            _build_concurrent()
+            self._build_concurrent(versions_to_build)
         else:
             for version in versions_to_build:
                 self._build_release(version)
 
-    def _build_concurrent():
+    def _build_concurrent(self, versions_to_build):
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
         )
         builds = []
         for version in versions_to_build:
-            build = self.executor.submit(self._build_release, version)
+            build = executor.submit(self._build_release, version)
             builds.append(build)
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
                 logging.error("Test job threw an exception; cancelling outstanding jobs...")
-                self.executor.shutdown(wait=True, cancel_futures=True)
+                executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
     def _push_release(self, release):
@@ -287,7 +287,7 @@ class ReleaseManager:
 
     def unbuilt_release_versions(self):
         if self.default_release:
-            return self.release_versions - self.docker_tags
+            return list(set(self.release_versions) - set(self.docker_tags))
         versions = set()
         for v in self.release_versions:
             for suffix in self.tag_suffixes:
@@ -299,7 +299,7 @@ class ReleaseManager:
 
     def unbuilt_eap_versions(self):
         if self.default_release:
-            return self.eap_release_versions - self.docker_tags
+            return list(set(self.eap_release_versions) - set(self.docker_tags))
         versions = set()
         for v in self.eap_release_versions:
             for suffix in self.tag_suffixes:
