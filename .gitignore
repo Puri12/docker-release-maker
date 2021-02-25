@@ -18,3 +18,4 @@ build/
 **/test-results/
 env.json
 build-output/
+Pipfile
