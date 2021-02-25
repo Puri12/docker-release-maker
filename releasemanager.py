@@ -79,7 +79,7 @@ def mac_versions(product_key):
         version_data = r.json()
         for version in version_data['_embedded']['versions']:
             if all(d.isdigit() for d in version['name'].split('.')):
-                logging.info(f"got {version['name']}")
+                logging.debug(f"Adding version {version['name']}")
                 versions.add(version['name'])
         if 'next' not in version_data['_links']:
             break
