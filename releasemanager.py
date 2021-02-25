@@ -145,7 +145,7 @@ class ReleaseManager:
             self.end_version = Version(end_version)
         else:
             self.end_version = Version(self.start_version.major + 1)
-        self.concurrent_builds = int(concurrent_builds or 4)
+        self.concurrent_builds = int(concurrent_builds or 1)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
@@ -157,9 +157,6 @@ class ReleaseManager:
         self.test_script = test_script
         self.job_offset = job_offset
         self.jobs_total = jobs_total
-        self.executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.concurrent_builds
-        )
         self.tag_suffixes = set(tag_suffixes or set())
 
         self.mac_versions = mac_versions(mac_product_key)
@@ -200,6 +197,16 @@ class ReleaseManager:
         logging.info(f'Building with {self.concurrent_builds} threads')
         if self.dockerfile is not None:
             logging.info(f'Using docker file "{self.dockerfile}"')
+        if self.concurrent_builds > 1:
+            _build_concurrent()
+        else:
+            for version in versions_to_build:
+                self._build_release(version)
+
+    def _build_concurrent():
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.concurrent_builds
+        )
         builds = []
         for version in versions_to_build:
             build = self.executor.submit(self._build_release, version)
@@ -230,6 +237,7 @@ class ReleaseManager:
                 break
 
     def _build_release(self, version):
+        logging.info(f"#### Building release {version}")
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
