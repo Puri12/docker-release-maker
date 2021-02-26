@@ -169,12 +169,10 @@ class ReleaseManager:
         if job_offset is not None and jobs_total is not None:
             self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
             self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
-        logging.info(f"Running release process for versions {self.release_versions}")
-        logging.info(f"Running EAP release process for versions {self.eap_release_versions}")
-
 
     def create_releases(self):
         logging.info('##### Creating new releases #####')
+        logging.info(f"Versions: {self.release_versions}")
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
@@ -185,6 +183,7 @@ class ReleaseManager:
 
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
+        logging.info(f"Versions: {self.eap_release_versions}")
         versions_to_build = self.unbuilt_eap_versions()
         return self.build_releases(versions_to_build)
 
