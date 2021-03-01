@@ -66,23 +66,27 @@ def docker_tags(repo):
     return tags
 
 
-def mac_versions(product_key, offset=0, limit=50):
-    logging.info(f'Retrieving Marketplace product versions for {product_key}')
+def mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
-    params = {'offset': offset, 'limit': limit}
+    params = {'offset': 0, 'limit': 50}
     versions = set()
+    page = 1
     while True:
+        logging.info(f'Retrieving Marketplace product versions for {product_key}: page {page}')
         r = requests.get(mac_url + request_url, params=params)
         version_data = r.json()
         for version in version_data['_embedded']['versions']:
             if all(d.isdigit() for d in version['name'].split('.')):
+                logging.debug(f"Adding version {version['name']}")
                 versions.add(version['name'])
         if 'next' not in version_data['_links']:
             break
         request_url = version_data['_links']['next']['href']
+        page += 1
         params = {}
-    return versions
+    logging.info(f'Found {len(versions)} versions')
+    return sorted(list(versions), reverse=True)
 
 
 eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
@@ -99,6 +103,7 @@ def eap_versions(product_key):
     if 'jira' in product_key:
         feed_key = 'jira'
         description_key = jira_product_key_mapper[product_key]
+        logging.info(f'Retrieving EAP versions for {product_key}')
     r = requests.get(f'https://my.atlassian.com/download/feeds/eap/{feed_key}.json')
     data = json.loads(r.text[10:-1])
     versions = set()
@@ -107,7 +112,8 @@ def eap_versions(product_key):
                 continue
         version = eap_version_pattern.search(item['description']).group(1)
         versions.add(version)
-    return versions
+    logging.info(f'Found {len(versions)} EAPs')
+    return sorted(list(versions), reverse=True)
 
 
 def str2bool(v):
@@ -120,17 +126,25 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
+def slice_job(versions, offset, total):
+    jsize = len(versions) / total
+    start = int(offset * jsize)
+    end = int(start + jsize)
+    return versions[start:end]
+
+
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, test_script):
+                 mac_product_key, tag_suffixes, push_docker, test_script,
+                 job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
             self.end_version = Version(end_version)
         else:
             self.end_version = Version(self.start_version.major + 1)
-        self.concurrent_builds = int(concurrent_builds or 4)
+        self.concurrent_builds = int(concurrent_builds or 1)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
         self.docker_repo = docker_repo
@@ -140,19 +154,25 @@ class ReleaseManager:
         self.dockerfile_version_arg = dockerfile_version_arg
         self.push_docker = push_docker
         self.test_script = test_script
-        self.executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.concurrent_builds
-        )
+        self.job_offset = job_offset
+        self.jobs_total = jobs_total
+        self.tag_suffixes = set(tag_suffixes or set())
+
         self.mac_versions = mac_versions(mac_product_key)
         self.eap_versions = eap_versions(mac_product_key)
-        self.release_versions = {v for v in self.mac_versions
-                                 if self.start_version <= Version(v) < self.end_version}
-        self.eap_release_versions = {v for v in self.eap_versions
-                                 if Version(v) < self.end_version}
-        self.tag_suffixes = set(tag_suffixes or set())
+        self.release_versions = [v for v in self.mac_versions
+                                 if self.start_version <= Version(v) < self.end_version]
+        self.eap_release_versions = [v for v in self.eap_versions
+                                 if Version(v) < self.end_version]
+
+        # If we're running batched just take 'our share'.
+        if job_offset is not None and jobs_total is not None:
+            self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
 
     def create_releases(self):
         logging.info('##### Creating new releases #####')
+        logging.info(f"Versions: {self.release_versions}")
         versions_to_build = self.unbuilt_release_versions()
         return self.build_releases(versions_to_build)
 
@@ -163,6 +183,7 @@ class ReleaseManager:
 
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
+        logging.info(f"Versions: {self.eap_release_versions}")
         versions_to_build = self.unbuilt_eap_versions()
         return self.build_releases(versions_to_build)
 
@@ -174,15 +195,25 @@ class ReleaseManager:
         logging.info(f'Building with {self.concurrent_builds} threads')
         if self.dockerfile is not None:
             logging.info(f'Using docker file "{self.dockerfile}"')
+        if self.concurrent_builds > 1:
+            self._build_concurrent(versions_to_build)
+        else:
+            for version in versions_to_build:
+                self._build_release(version)
+
+    def _build_concurrent(self, versions_to_build):
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.concurrent_builds
+        )
         builds = []
         for version in versions_to_build:
-            build = self.executor.submit(self._build_release, version)
+            build = executor.submit(self._build_release, version)
             builds.append(build)
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
             if exc is not None:
                 logging.error("Test job threw an exception; cancelling outstanding jobs...")
-                self.executor.shutdown(wait=True, cancel_futures=True)
+                executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
     def _push_release(self, release):
@@ -204,6 +235,7 @@ class ReleaseManager:
                 break
 
     def _build_release(self, version):
+        logging.info(f"#### Building release {version}")
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
@@ -253,7 +285,7 @@ class ReleaseManager:
 
     def unbuilt_release_versions(self):
         if self.default_release:
-            return self.release_versions - self.docker_tags
+            return list(set(self.release_versions) - set(self.docker_tags))
         versions = set()
         for v in self.release_versions:
             for suffix in self.tag_suffixes:
@@ -265,7 +297,7 @@ class ReleaseManager:
 
     def unbuilt_eap_versions(self):
         if self.default_release:
-            return self.eap_release_versions - self.docker_tags
+            return list(set(self.eap_release_versions) - set(self.docker_tags))
         versions = set()
         for v in self.eap_release_versions:
             for suffix in self.tag_suffixes:

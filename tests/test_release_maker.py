@@ -17,12 +17,12 @@ def test_docker_tags(refapp):
 def test_mac_versions(refapp):
     versions = mac_versions(refapp['mac_product_key'])
     assert len(versions) > 0
-    assert isinstance(versions, set)
+    assert isinstance(versions, list)
     assert all([i.isdigit() for v in versions for i in v.split('.')])
 
 def test_eap_versions(refapp):
     versions = eap_versions(refapp['mac_product_key'])
-    assert isinstance(versions, set)
+    assert isinstance(versions, list)
 
 def test_version_sorting():
     x = Version('1.9.9')
