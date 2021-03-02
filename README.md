@@ -146,13 +146,31 @@ inside this repository.
 
   The test script to run after the build of each image. If the script returns
   non-zero the release process will end. It defaults to the
-  `integration_test.sh` script in this repository. This script performs security
-  scanning using the same tooling used by Atlassian internally, and run the
-  script `func-tests/run-functests` in the calling repository if available. The
-  `run-functests` script should accept a single parameter, the target image hash
-  or tag. See [the Jira container functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
-  for an example. Optionally, this script can be overridden via the environment
-  variable `FUNCTEST_SCRIPT`.
+  `integration_test.sh` script in this repository. For more details on this
+  script see the section below.
+
+### Integration test script
+
+As noted above, the release-manager will invoke a specified integration test
+script or a default. This script is passed 2 parameters:
+
+* The hash of the locally built image.
+* A `"true"` if the script is being invoked in the context of a release rather
+  than a branch or PR build.
+
+ If `INTEGRATION_TEST_SCRIPT` is not set, the default
+ [integration_test.sh](integration_test.sh) is invoked. The script will perform
+ the following:
+
+* Invoke [Snyk](https://snyk.io/) container testing against the built image.
+* If the release flag is set it will register the image with Snyk for ongoing
+  monitoring.
+* If the file `func-tests/run-functests` (in the product Docker repository)
+  exists and is executable it is invoked with the image tag or hash.  For an
+  example of this see [the Jira container
+  functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
+  functional testing script. Optionally, this script can be overridden via the
+  environment variable `FUNCTEST_SCRIPT`.
 
 ## Tagging
 
