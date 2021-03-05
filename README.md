@@ -159,15 +159,20 @@ script or a default. This script is passed 2 parameters:
   than a branch or PR build.
 
  If `INTEGRATION_TEST_SCRIPT` is not set, the default
- [integration_test.sh](integration_test.sh) is invoked. The script will perform
- the following:
+ [integration_test.sh](integration_test.sh) is invoked. This takes the following
+ parameters:
+1. An image tag or hash (mandatory)
+1. An 'is-release' flag (default: false)
+1. A 'test-candidate' flag (default: false)
 
-* Invoke [Snyk](https://snyk.io/) container testing against the built image.
+The script will perform the following actions:
+
+* Invoke [Snyk](https://snyk.io/) container testing against the supplied image.
 * If the release flag is set it will register the image with Snyk for ongoing
   monitoring.
-* If the file `func-tests/run-functests` (in the product Docker repository)
-  exists and is executable it is invoked with the image tag or hash.  For an
-  example of this see [the Jira container
+* If `test_candidate` flag is `true`, and the file `func-tests/run-functests`
+  (in the product Docker repository) exists and is executable it is invoked with
+  the image.  For an example of this see [the Jira container
   functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
   functional testing script. Optionally, this script can be overridden via the
   environment variable `FUNCTEST_SCRIPT`.

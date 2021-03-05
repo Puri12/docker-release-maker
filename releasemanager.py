@@ -254,7 +254,7 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        self._run_test_script(image)
+        self._run_test_script(image, version)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
@@ -262,7 +262,7 @@ class ReleaseManager:
 
             self._push_release(release)
 
-    def _run_test_script(self, image):
+    def _run_test_script(self, image, version):
         if self.test_script is None or self.test_script == '':
             logging.warning("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
             return
@@ -273,8 +273,10 @@ class ReleaseManager:
             raise EnvironmentException(msg)
 
         logging.info(f'Running integration test script: {self.test_script}')
-        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
-        script_command = [self.test_script, image.id, str(self.push_docker).lower()]
+        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
+        is_release = str(self.push_docker).lower()
+        test_candidate = str(self.latest_minor(version)).lower()
+        script_command = [self.test_script, image.id, is_release, test_candidate]
 
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
