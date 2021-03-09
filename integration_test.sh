@@ -6,7 +6,7 @@ if [ $# -eq 0 ]; then
 fi
 IMAGE=$1
 IS_RELEASE=${2:-false}
-RUN_FUNCTESTS=${3:-false}
+RUN_FUNCTESTS=${3:-true}
 
 TEST_RESULT=0
 check_for_failure() {
