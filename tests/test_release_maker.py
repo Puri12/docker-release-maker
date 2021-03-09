@@ -46,6 +46,7 @@ def test_version_sorting():
     assert x < y < z
 
 
+
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags')
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.7.7', '6.7.8'})
