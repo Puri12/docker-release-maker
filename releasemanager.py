@@ -116,6 +116,34 @@ def eap_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
+
+def latest(version, mac_versions):
+    versions = [v for v in mac_versions]
+    versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+    return version in versions[-1:]
+
+
+def latest_major(version, mac_versions):
+    major_version = version.split('.')[0]
+    major_versions = [v for v in mac_versions
+                      if v.startswith(f'{major_version}.')]
+    major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+    return version in major_versions[-1:]
+
+
+def latest_minor(version, mac_versions):
+    major_minor_version = '.'.join(version.split('.')[:2])
+    minor_versions = [v for v in mac_versions
+                      if v.startswith(f'{major_minor_version}.')]
+    minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+    return version in minor_versions[-1:]
+
+
+def latest_eap(version, eap_versions):
+    eap_versions = sorted(eap_versions, key=lambda s: Version(s))
+    return version in eap_versions[-1:]
+
+
 def str2bool(v):
     if str(v).lower() in ('yes', 'true', 't', 'y', '1'):
         return True
@@ -254,7 +282,7 @@ class ReleaseManager:
             raise exc
 
         # script will terminated with error if the test failed
-        self._run_test_script(image)
+        self._run_test_script(image, version)
 
         for tag in self.calculate_tags(version):
             release = f'{self.docker_repo}:{tag}'
@@ -262,7 +290,7 @@ class ReleaseManager:
 
             self._push_release(release)
 
-    def _run_test_script(self, image):
+    def _run_test_script(self, image, version):
         if self.test_script is None or self.test_script == '':
             logging.warning("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
             return
@@ -273,8 +301,10 @@ class ReleaseManager:
             raise EnvironmentException(msg)
 
         logging.info(f'Running integration test script: {self.test_script}')
-        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]
-        script_command = [self.test_script, image.id, str(self.push_docker).lower()]
+        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
+        is_release = str(self.push_docker).lower()
+        test_candidate = str(latest_minor(version, self.mac_versions)).lower()
+        script_command = [self.test_script, image.id, is_release, test_candidate]
 
         # run provided test script - terminate with error if the test failed
         proc = subprocess.run(script_command)
@@ -310,45 +340,22 @@ class ReleaseManager:
     def calculate_tags(self, version):
         tags = set()
         version_tags = {version}
-        if self.latest_major(version):
+        if latest_major(version, self.mac_versions):
             major_version = version.split('.')[0]
             version_tags.add(major_version)
-        if self.latest_minor(version):
+        if latest_minor(version, self.mac_versions):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
-        if self.latest_eap(version):
+        if latest_eap(version, self.eap_versions):
            version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
-            if self.latest(version):
+            if latest(version, self.mac_versions):
                 tags.add('latest')
         for suffix in self.tag_suffixes:
             for v in version_tags:
                 suffix_tag = f'{v}-{suffix}'
                 tags.add(suffix_tag)
-            if self.latest(version):
+            if latest(version, self.mac_versions):
                 tags.add(suffix)
         return tags
-
-    def latest(self, version):
-        versions = [v for v in self.mac_versions]
-        versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in versions[-1:]
-
-    def latest_major(self, version):
-        major_version = version.split('.')[0]
-        major_versions = [v for v in self.mac_versions
-                          if v.startswith(f'{major_version}.')]
-        major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in major_versions[-1:]
-
-    def latest_minor(self, version):
-        major_minor_version = '.'.join(version.split('.')[:2])
-        minor_versions = [v for v in self.mac_versions
-                          if v.startswith(f'{major_minor_version}.')]
-        minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
-        return version in minor_versions[-1:]
-
-    def latest_eap(self, version):
-        eap_versions = sorted(self.eap_versions, key=lambda s: Version(s))
-        return version in eap_versions[-1:]

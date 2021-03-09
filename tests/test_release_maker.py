@@ -5,7 +5,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version
+from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version, latest_minor
 
 def test_docker_tags(refapp):
     tags = docker_tags(refapp['docker_repo'])
@@ -45,6 +45,11 @@ def test_version_sorting():
     z = Version('1.0.0-RC1')
     assert x < y < z
 
+def test_latest_minor():
+    versions = ['5.4.3', '5.6.7', '5.6.9', '5.7.7', '5.7.8']
+    assert not latest_minor("5.7.7", versions)
+    assert latest_minor("5.7.8", versions)
+    assert not latest_minor("5.6.7", versions)
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags')

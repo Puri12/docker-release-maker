@@ -1,11 +1,19 @@
 #!/bin/sh
 
+# This script will invoke Snyk for an image, optionally, any functional tests if present.
+#
+#   Usage: <path-to>/integration_test.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
+#
+# The release image flag defaults to false, the testing flag to true.
+
+
 if [ $# -eq 0 ]; then
     echo "No docker image supplied. Syntax: integration_test.sh <image tag or hash> ['true' if a release image]"
     exit 1
 fi
 IMAGE=$1
 IS_RELEASE=${2:-false}
+RUN_FUNCTESTS=${3:-true}
 
 TEST_RESULT=0
 check_for_failure() {
@@ -44,15 +52,18 @@ fi
 
 
 echo "######## Integration Testing ########"
-FUNCTEST_SCRIPT=${FUNCTEST_SCRIPT:-'./func-tests/run-functests'}
-if [ -x $FUNCTEST_SCRIPT ]; then
-    echo "Invoking ${FUNCTEST_SCRIPT} ${IMAGE}"
-    ${FUNCTEST_SCRIPT} $IMAGE
-    exit_code=$?
-    check_for_failure $exit_code
+if [ $RUN_FUNCTESTS = true ]; then
+    FUNCTEST_SCRIPT=${FUNCTEST_SCRIPT:-'./func-tests/run-functests'}
+    if [ -x $FUNCTEST_SCRIPT ]; then
+        echo "Invoking ${FUNCTEST_SCRIPT} ${IMAGE}"
+        ${FUNCTEST_SCRIPT} $IMAGE
+        exit_code=$?
+        check_for_failure $exit_code
+    else
+        echo "Testing script ${FUNCTEST_SCRIPT} doesn't exist or is not executable; skipping."
+    fi
 else
-    echo "Testing script ${FUNCTEST_SCRIPT} doesn't exist or is not executable; skipping."
+    echo "Functest flag not set, skipping"
 fi
-
 
 exit $TEST_RESULT
