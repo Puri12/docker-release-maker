@@ -1,5 +1,12 @@
 #!/bin/sh
 
+# This script will invoke Snyk for an image, optionally, any functional tests if present.
+#
+#   Usage: <path-to>/integration_test.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
+#
+# The release image flag defaults to false, the testing flag to true.
+
+
 if [ $# -eq 0 ]; then
     echo "No docker image supplied. Syntax: integration_test.sh <image tag or hash> ['true' if a release image]"
     exit 1
