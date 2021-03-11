@@ -6,6 +6,7 @@
 #
 # The release image flag defaults to false, the testing flag to true.
 
+set -e
 
 if [ $# -eq 0 ]; then
     echo "No docker image supplied. Syntax: integration_test.sh <image tag or hash> ['true' if a release image]"
@@ -14,15 +15,6 @@ fi
 IMAGE=$1
 IS_RELEASE=${2:-false}
 RUN_FUNCTESTS=${3:-true}
-
-TEST_RESULT=0
-check_for_failure() {
-    if [ $1 -ne 0 ]; then
-        echo "Operation failed; flagging and continuing."
-        TEST_RESULT=$1
-    fi
-}
-
 
 echo "######## Security Scan ########"
 SEV_THRESHOLD=${SEV_THRESHOLD:-high}
@@ -33,19 +25,15 @@ if [ x"${SNYK_TOKEN}" = 'x' ]; then
 fi
 
 echo "Authenticating with Snyk..."
-snyk auth $SNYK_TOKEN
+snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
-snyk container test $IMAGE --severity-threshold=$SEV_THRESHOLD
-exit_code=$?
-check_for_failure $exit_code
+snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 
 # If we're releasing the image we should enable monitoring:
 if [ $IS_RELEASE = true ]; then
     echo "Enabling Snyk monitoring for image $IMAGE"
-    snyk container monitor $IMAGE --severity-threshold=$SEV_THRESHOLD
-    exit_code=$?
-    check_for_failure $exit_code
+    snyk container monitor -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 else
     echo "Publish flag is not set, skipping Snyk monitoring"
 fi
@@ -57,8 +45,6 @@ if [ $RUN_FUNCTESTS = true ]; then
     if [ -x $FUNCTEST_SCRIPT ]; then
         echo "Invoking ${FUNCTEST_SCRIPT} ${IMAGE}"
         ${FUNCTEST_SCRIPT} $IMAGE
-        exit_code=$?
-        check_for_failure $exit_code
     else
         echo "Testing script ${FUNCTEST_SCRIPT} doesn't exist or is not executable; skipping."
     fi
@@ -66,4 +52,4 @@ else
     echo "Functest flag not set, skipping"
 fi
 
-exit $TEST_RESULT
+exit 0
