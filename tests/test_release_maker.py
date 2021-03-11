@@ -220,7 +220,7 @@ def test_create_competing_releases(mocked_docker, mocked_docker_tags, mocked_mac
 def test_raise_exceptions(mocked_docker, mocked_docker_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
-    rm.docker_cli.images.build.side_effect = docker.errors.BuildError('Test failure message', 'Build log')
+    rm.docker_cli.images.build.side_effect = docker.errors.BuildError('Test failure message', [{'stream':'Build log'}])
     with pytest.raises(docker.errors.BuildError):
         rm.create_releases()
     expected_logs = {
