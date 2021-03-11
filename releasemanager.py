@@ -279,6 +279,8 @@ class ReleaseManager:
                 f'Build for {self.docker_repo} with '
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
+            for line in exc.build_log:
+                logging.error(f"Build Log: {line['stream'].strip()}")
             raise exc
 
         # script will terminated with error if the test failed
