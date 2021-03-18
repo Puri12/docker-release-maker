@@ -178,7 +178,7 @@ def slice_job(versions, offset, total):
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
-                 docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
+                 docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
                  mac_product_key, tag_suffixes, push_docker, test_script,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
@@ -191,7 +191,7 @@ class ReleaseManager:
         self.docker_cli = docker.from_env()
 
         self.tag_suffixes = set(tag_suffixes or set())
-        self.target_repos = get_targets([docker_repo])
+        self.target_repos = get_targets(docker_repos)
 
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
