@@ -74,7 +74,7 @@ def existing_tags(repo):
 
 def get_targets(repos):
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
-    return targets
+    return list(targets)
 
 
 def mac_versions(product_key):
@@ -191,11 +191,7 @@ class ReleaseManager:
         self.docker_cli = docker.from_env()
 
         self.tag_suffixes = set(tag_suffixes or set())
-        self.target_repo = TargetRepo(docker_repo, existing_tags(docker_repo))
-        #self.push_targets = get_targets(repos, tag_suffixes)
-
-        #self.docker_repo
-        #self.docker_tags = docker_tags(docker_repos)
+        self.target_repos = get_targets([docker_repo])
 
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
@@ -313,12 +309,14 @@ class ReleaseManager:
         self._run_test_script(image, version)
 
         for tag in self.calculate_tags(version):
-            repo = self.target_repo.repo
-            release = f'{repo}:{tag}'
+            for target in self.target_repos:
+                repo = target.repo
+                release = f'{repo}:{tag}'
 
-            logging.info(f'Tagging release "{release}"')
-            image.tag(repo, tag=tag)
-            self._push_release(release)
+                logging.info(f'Tagging "{release}"')
+                image.tag(repo, tag=tag)
+
+                self._push_release(release)
 
     def _run_test_script(self, image, version):
         if self.test_script is None or self.test_script == '':
@@ -344,9 +342,10 @@ class ReleaseManager:
             raise TestFailedException(msg)
 
     def unbuilt_versions(self, candidate_versions):
-        existing_tags = self.target_repo.existing_tags
+        # Only exclude tags that exist in all repos
+        existing_tags = set.intersection(*map(lambda tr: tr.existing_tags, self.target_repos))
         if self.default_release:
-            return list(set(candidate_versions) - set(existing_tags))
+            return list(set(candidate_versions) - existing_tags)
 
         versions = set()
         for v in candidate_versions:
@@ -354,7 +353,7 @@ class ReleaseManager:
                 tag = f'{v}-{suffix}'
                 if tag not in existing_tags:
                     versions.add(v)
-        logging.info(versions)
+        logging.info(f"Found unbuilt: {versions}")
         return versions
 
     def calculate_tags(self, version):
