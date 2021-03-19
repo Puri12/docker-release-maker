@@ -155,9 +155,10 @@ def parse_buildargs(buildargs):
 
 
 def slice_job(versions, offset, total):
-    jsize = len(versions) / total
-    start = int(offset * jsize)
-    end = int(start + jsize)
+    total = min(total, len(versions))
+    jsize = round(len(versions) / total)
+    start = offset * jsize
+    end = start + jsize
     return versions[start:end]
 
 
