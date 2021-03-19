@@ -55,7 +55,7 @@ def main(args):
                              end_version=END_VERSION,
                              concurrent_builds=CONCURRENT_BUILDS,
                              default_release=DEFAULT_RELEASE,
-                             docker_repo=[DOCKER_REPO],
+                             docker_repos=[DOCKER_REPO],
                              dockerfile=DOCKERFILE,
                              dockerfile_buildargs=DOCKERFILE_BUILDARGS,
                              dockerfile_version_arg=DOCKERFILE_VERSION_ARG,
