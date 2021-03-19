@@ -1,3 +1,4 @@
+import itertools
 import logging
 import os
 from unittest import mock
@@ -5,7 +6,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version, latest_minor
+from releasemanager import docker_tags, eap_versions, mac_versions, ReleaseManager, str2bool, Version, latest_minor, slice_job
 
 def test_docker_tags(refapp):
     tags = docker_tags(refapp['docker_repo'])
@@ -50,6 +51,31 @@ def test_latest_minor():
     assert not latest_minor("5.7.7", versions)
     assert latest_minor("5.7.8", versions)
     assert not latest_minor("5.6.7", versions)
+
+
+def test_slice_job_short():
+    versions = ['8.16.0-RC02', '8.16.0-RC01', '8.16.0-EAP03', '8.16.0-EAP02', '8.16.0-EAP01']
+    assert slice_job(versions, 0, 12) == [versions[0]]
+    assert slice_job(versions, 1, 12) == [versions[1]]
+    assert slice_job(versions, 2, 12) == [versions[2]]
+    assert slice_job(versions, 3, 12) == [versions[3]]
+    assert slice_job(versions, 4, 12) == [versions[4]]
+
+    assert slice_job(versions, 9, 12) == []
+    assert slice_job(versions, 5, 12) == []
+    assert slice_job(versions, 11, 12) == []
+
+def test_slice_job_long():
+     versions = [f"3.2.{i}" for i in range(68)]
+     assert slice_job(versions, 0, 12) == versions[0:6]
+     assert slice_job(versions, 1, 12) == versions[6:12]
+     assert slice_job(versions, 11, 12) == versions[66:68]
+
+     processed = []
+     for off in range(12):
+         processed += slice_job(versions, off, 12)
+     assert processed == versions
+
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.docker_tags')
