@@ -37,7 +37,7 @@ pipelines:
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - >
-              python ../docker-release-maker/make-releases.py 
+              python make-releases.py 
                 --update
                 --start-version='7.13'
                 --end-version='9'
