@@ -15,10 +15,11 @@ tools and dependencies, including Python test dependencies; see the
 Docker Release Maker can be run via Bitbucket Pipelines to create new images for
 unreleased product versions, or to rebuild and update all published images. 
 
-The easiest way to configure Docker Release Maker is to set the desired options as
-environment variables, and then call `run.py --create` to create new releases or
-`run.py --update` to update all releases. The `--create-eap` flag can also be used to
-create EAP releases if they're available.
+The easiest way to configure Docker Release Maker is to set the desired options
+on the command-line, and then call `make-releases.py --create` to create new
+releases or `make-releases.py --update` to update all releases. The
+`--create-eap` flag can also be used to create EAP releases if they're
+available.
 
 A typical Pipelines configuration looks like this:
 
@@ -34,17 +35,22 @@ pipelines:
           services:
             - docker
           script:
-            - export START_VERSION='8'
-            - export END_VERSION='9'
-            - export CONCURRENT_BUILDS='4'
-            - export DEFAULT_RELEASE='true'
-            - export DOCKER_REPO='dchevell/jira-software'
-            - export DOCKERFILE_BUILDARGS='ARTEFACT_NAME=atlassian-jira-software'
-            - export DOCKERFILE_VERSION_ARG='JIRA_VERSION'
-            - export MAC_PRODUCT_KEY='jira-software'
-            - export TAG_SUFFIXES='jdk8,ubuntu'
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            - python /usr/src/app/run.py --create
+            - >
+              python make-releases.py 
+                --update
+                --start-version='7.13'
+                --end-version='9'
+                --default-release
+                --dockerfile-buildargs='ARTEFACT_NAME=atlassian-jira-software,BASE_IMAGE=adoptopenjdk:8-hotspot'
+                --dockerfile-version-arg='JIRA_VERSION'
+                --mac-product-key='jira-software'
+                --tag-suffixes=''
+                --concurrent-builds='1'
+                --job-offset='0'
+                --jobs-total='12'
+                --docker-repos='atlassian/jira-software'
+                --push
 ```
 
 Note that in the example above, `docker login` is called directly and Docker Release Maker
@@ -53,36 +59,39 @@ simply uses the existing authentication.
 A more comprehensive list of examples can be found in **bitbucket-pipelines.yml.example** 
 inside this repository.
 
+The release-maker also supports an alternative configuration via environment
+variables if invoked as `run.py`. This mode is deprecated and will be removed in
+the future.
 
 ### Required parameters
 
-* `START_VERSION`
+* `--start-version`
 
    The floor value of versions to build images for (inclusive). This can be any level of
    precision, e.g. '8', '8.1', or '8.1.2'.
 
-* `END_VERSION`
+* `--end-version`
 
    The ceiling value of versions to build images for (exclusive). This can be any level of
    precision, e.g. '9', '9.1', or '9.1.2'. If not set, this will default to the major
-   version component of `START_VERSION` + 1. 
+   version component of `--start-version` + 1. 
 
-* `BASE_VERSION`
+* `--base-version`
 
-   The major version to build images for (deprecated). If `START_VERSION` is set, this is
+   The major version to build images for (deprecated). If `--start-version` is set, this is
    ignored.
 
-* `DOCKER_REPO`
+* `--docker-repo`
 
    The Docker Hub repository name. This is used both to check existing published tags,
    and to push new builds.
 
-* `DOCKERFILE_VERSION_ARG`
+* `--dockerfile-version-arg`
 
    The build argument in the Dockerfile that specifies product version. The Dockerfile
    should use this to retrieve / install the correct product version.
 
-* `MAC_PRODUCT_KEY`
+* `--mac-product-key`
 
    The product key used by the Atlassian Marketplace API, to determine available releases. 
    Valid values include:
@@ -98,14 +107,14 @@ inside this repository.
 
 ### Optional parameters
 
-* `CONCURRENT_BUILDS` (default: 4)
+* `--concurrent-builds` (default: 1)
 
    The number of images to build concurrently. This may be increased to improve time to
    completion when building a large number of images, or reduced in constrained 
    environments. The default value should be optimal in a standard Bitbucket Pipelines
    environment.
 
-* `DEFAULT_RELEASE` (default: false)
+* `--default-release` (default: false)
 
    Whether the build should be considered the default. When this is true, "plain" version 
    tags and the `latest` tag will be applied. This is useful when there are multiple 
@@ -114,35 +123,35 @@ inside this repository.
    variants exist it is highly recommended that this be set to `true`. See "Tagging" for 
    more info on how tags are calculated and applied. 
 
-* `DOCKERFILE` (default: Dockerfile)
+* `--dockerfile` (default: Dockerfile)
 
    Specify a custom Dockerfile path to use. This can be useful if multiple Dockerfile
    variations exist in the one repo, e.g. secondary Alpine builds. The value can include
    folder paths, and should point to a specific Dockerfile name, e.g. 
    `path/to/Dockerfile-custom`
 
-* `DOCKERFILE_BUILDARGS` (default: none)
+* `--dockerfile-buildargs` (default: none)
 
    Specify additional custom build arguments to be applied to images at build time. This
    can be used in a number of ways: to override the base image in templates that specify
    the base as a build arg; to specify custom versions of dependencies in images; etc.
    This relies on the Dockerfile supporting the build arguments. Build arguments should be
    specified as comma separated key=value pairs, e.g.
-   `DOCKERFILE_BUILDARGS='BASE_IMAGE=adoptopenjdk/openjdk11:slim,ADDITIONAL_PACKAGES=vim telnet'`
+   `--dockerfile-buildargs='BASE_IMAGE=adoptopenjdk/openjdk11:slim,ADDITIONAL_PACKAGES=vim telnet'`
 
-* `TAG_SUFFIXES` (default: none)
+* `--tag-suffixes` (default: none)
 
    Additional suffixes to create suffixed tags for. When present, suffixed version tags
    will be applied. This should be a comma separated list of desired tag suffixes, e.g. 
    `TAG_SUFFIXES='ubuntu,jdk8'`. See "Tagging" for more info on how tags are calculated 
    and applied. 
 
-* `PUSH_DOCKER_IMAGE` (default: true)
+* `--push` (default: false)
 
   Whether to push the image to the specified repo. Usually set to false on
   PRs/branches.
 
-* `INTEGRATION_TEST_SCRIPT`: (default: '/usr/src/app/integration_test.sh')
+* `--integration-test-script`: (default: '/usr/src/app/integration_test.sh')
 
   The test script to run after the build of each image. If the script returns
   non-zero the release process will end. It defaults to the
@@ -158,7 +167,7 @@ script or a default. This script is passed 2 parameters:
 * A `"true"` if the script is being invoked in the context of a release rather
   than a branch or PR build.
 
- If `INTEGRATION_TEST_SCRIPT` is not set, the default
+ If `--integration-test-script` is not set, the default
  [integration_test.sh](integration_test.sh) is invoked. This takes the following
  parameters:
 1. An image tag or hash (mandatory)
@@ -184,7 +193,7 @@ tags are calculated, and are added to a single image build. This ensures that th
 only a single published artefact for a given version, regardless of how many tags are
 applied. 
 
-For configurations where `DEFAULT_RELEASE` is `true` then "plain" version tags will be
+For configurations where `--default-release` is `true` then "plain" version tags will be
 added. Given the example version "6.5.4" the following plain tags may be created:
 
 
@@ -235,4 +244,4 @@ created:
    product.
 
 
-`TAG_SUFFIXES` may be applied to both default and non-default release configurations.
+`--tag-suffixes` may be applied to both default and non-default release configurations.

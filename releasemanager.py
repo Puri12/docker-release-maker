@@ -13,6 +13,14 @@ import sys
 import os
 
 
+class EnvironmentException(Exception):
+    pass
+
+
+class TestFailedException(Exception):
+    pass
+
+
 class VersionType(IntEnum):
      MILESTONE = 0
      BETA = 1
@@ -48,15 +56,13 @@ class Version:
                 self.rtype = VersionType.RELEASE
 
 
-class EnvironmentException(Exception):
-    pass
+@dataclasses.dataclass
+class TargetRepo:
+    repo: str
+    existing_tags: set[str]
 
 
-class TestFailedException(Exception):
-    pass
-
-
-def docker_tags(repo):
+def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
     if r.status_code == requests.codes.not_found:
@@ -64,6 +70,11 @@ def docker_tags(repo):
     tag_data = r.json()
     tags = {t['name'] for t in tag_data}
     return tags
+
+
+def get_targets(repos):
+    targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
+    return list(targets)
 
 
 def mac_versions(product_key):
@@ -167,7 +178,7 @@ def slice_job(versions, offset, total):
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
-                 docker_repo, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
+                 docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
                  mac_product_key, tag_suffixes, push_docker, test_script,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
@@ -178,8 +189,10 @@ class ReleaseManager:
         self.concurrent_builds = int(concurrent_builds or 1)
         self.default_release = default_release
         self.docker_cli = docker.from_env()
-        self.docker_repo = docker_repo
-        self.docker_tags = docker_tags(docker_repo)
+
+        self.tag_suffixes = set(tag_suffixes or set())
+        self.target_repos = get_targets(docker_repos)
+
         self.dockerfile = dockerfile
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
@@ -187,7 +200,6 @@ class ReleaseManager:
         self.test_script = test_script
         self.job_offset = job_offset
         self.jobs_total = jobs_total
-        self.tag_suffixes = set(tag_suffixes or set())
 
         self.mac_versions = mac_versions(mac_product_key)
         self.eap_versions = eap_versions(mac_product_key)
@@ -204,7 +216,7 @@ class ReleaseManager:
     def create_releases(self):
         logging.info('##### Creating new releases #####')
         logging.info(f"Versions: {self.release_versions}")
-        versions_to_build = self.unbuilt_release_versions()
+        versions_to_build = self.unbuilt_versions(self.release_versions)
         return self.build_releases(versions_to_build)
 
     def update_releases(self):
@@ -215,7 +227,7 @@ class ReleaseManager:
     def create_eap_releases(self):
         logging.info('##### Creating new EAP releases #####')
         logging.info(f"Versions: {self.eap_release_versions}")
-        versions_to_build = self.unbuilt_eap_versions()
+        versions_to_build = self.unbuilt_versions(self.eap_release_versions)
         return self.build_releases(versions_to_build)
 
     def build_releases(self, versions_to_build):
@@ -250,6 +262,7 @@ class ReleaseManager:
     def _push_release(self, release):
         if not self.push_docker:
             return
+
         max_retries = 5
         for i in range(1, max_retries+1):
             try:
@@ -265,35 +278,45 @@ class ReleaseManager:
                 logging.info(f'Pushing tag "{release}" succeeded!')
                 break
 
-    def _build_release(self, version):
-        logging.info(f"#### Building release {version}")
+    def _build_image(self, version):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
         buildargs_log_str = ', '.join(['{}={}'.format(*i) for i in buildargs.items()])
-        logging.info(f'Building {self.docker_repo} with buildargs: {buildargs_log_str}')
+        logging.info(f'Building {version} image with buildargs: {buildargs_log_str}')
         try:
             image = self.docker_cli.images.build(path='.',
                                                  buildargs=buildargs,
                                                  dockerfile=self.dockerfile,
                                                  rm=True)[0]
+            return image
+
         except docker.errors.BuildError as exc:
             logging.error(
-                f'Build for {self.docker_repo} with '
+                f'Build with args '
                 f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
             )
             for line in exc.build_log:
                 logging.error(f"Build Log: {line['stream'].strip()}")
             raise exc
 
+    def _build_release(self, version):
+        logging.info(f"#### Building release {version}")
+
+        image = self._build_image(version)
+
         # script will terminated with error if the test failed
         self._run_test_script(image, version)
 
         for tag in self.calculate_tags(version):
-            release = f'{self.docker_repo}:{tag}'
-            image.tag(self.docker_repo, tag=tag)
+            for target in self.target_repos:
+                repo = target.repo
+                release = f'{repo}:{tag}'
 
-            self._push_release(release)
+                logging.info(f'Tagging "{release}"')
+                image.tag(repo, tag=tag)
+
+                self._push_release(release)
 
     def _run_test_script(self, image, version):
         if self.test_script is None or self.test_script == '':
@@ -318,28 +341,19 @@ class ReleaseManager:
             logging.error(msg)
             raise TestFailedException(msg)
 
-    def unbuilt_release_versions(self):
+    def unbuilt_versions(self, candidate_versions):
+        # Only exclude tags that exist in all repos
+        existing_tags = set.intersection(*map(lambda tr: tr.existing_tags, self.target_repos))
         if self.default_release:
-            return list(set(self.release_versions) - set(self.docker_tags))
-        versions = set()
-        for v in self.release_versions:
-            for suffix in self.tag_suffixes:
-                tag = f'{v}-{suffix}'
-                if tag not in self.docker_tags:
-                    versions.add(v)
-        logging.info(versions)
-        return versions
+            return list(set(candidate_versions) - existing_tags)
 
-    def unbuilt_eap_versions(self):
-        if self.default_release:
-            return list(set(self.eap_release_versions) - set(self.docker_tags))
         versions = set()
-        for v in self.eap_release_versions:
+        for v in candidate_versions:
             for suffix in self.tag_suffixes:
                 tag = f'{v}-{suffix}'
-                if tag not in self.docker_tags:
+                if tag not in existing_tags:
                     versions.add(v)
-        logging.info(versions)
+        logging.info(f"Found unbuilt: {versions}")
         return versions
 
     def calculate_tags(self, version):

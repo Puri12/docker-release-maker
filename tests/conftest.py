@@ -8,7 +8,7 @@ def refapp():
         'end_version': None,
         'concurrent_builds': '4',
         'default_release': True,
-        'docker_repo': 'atlassian/bitbucket-server',
+        'docker_repos': ['atlassian/bitbucket-server'],
         'dockerfile': None,
         'dockerfile_buildargs': None,
         'dockerfile_version_arg': 'BITBUCKET_VERSION',
