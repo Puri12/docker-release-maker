@@ -174,12 +174,27 @@ def slice_job(versions, offset, total):
     end = start + jsize
     return versions[start:end]
 
+def run_script(script, *args):
+    if not os.path.exists(script):
+        msg = f"Test script '{script}' does not exist; failing!"
+        logging.error (msg)
+        raise EnvironmentException(msg)
+
+    # run provided test script - terminate with error if the test failed
+    script_command = [script] + list(args)
+    logging.info(f'Running integration test script: "{script_command}"')
+    proc = subprocess.run(script_command)
+    if proc.returncode != 0:
+        msg = f"Test script '{script}' exited with non-zero ({proc.returncode}); failing!"
+        logging.error(msg)
+        raise TestFailedException(msg)
+
 
 class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, test_script,
+                 mac_product_key, tag_suffixes, push_docker, test_script, push_hook,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
@@ -197,6 +212,7 @@ class ReleaseManager:
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
         self.push_docker = push_docker
+        self.push_hook = push_hook
         self.test_script = test_script
         self.job_offset = job_offset
         self.jobs_total = jobs_total
@@ -212,6 +228,9 @@ class ReleaseManager:
         if job_offset is not None and jobs_total is not None:
             self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
             self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
+
+        logging.info(f'Will process release versions: {self.release_versions}')
+        logging.info(f'Will process EAP versions: {self.eap_release_versions}')
 
     def create_releases(self):
         logging.info('##### Creating new releases #####')
@@ -261,6 +280,7 @@ class ReleaseManager:
 
     def _push_release(self, release):
         if not self.push_docker:
+            logging.info(f'Skipping push of tag "{release}"')
             return
 
         max_retries = 5
@@ -268,6 +288,7 @@ class ReleaseManager:
             try:
                 logging.info(f'Pushing tag "{release}"')
                 self.docker_cli.images.push(release)
+                self._run_push_hook(release)
             except requests.exceptions.ConnectionError as e:
                 if i > max_retries:
                     logging.error(f'Push failed for tag "{release}"')
@@ -277,6 +298,7 @@ class ReleaseManager:
             else:
                 logging.info(f'Pushing tag "{release}" succeeded!')
                 break
+
 
     def _build_image(self, version):
         buildargs = {self.dockerfile_version_arg: version}
@@ -308,7 +330,9 @@ class ReleaseManager:
         # script will terminated with error if the test failed
         self._run_test_script(image, version)
 
-        for tag in self.calculate_tags(version):
+        tags =  self.calculate_tags(version)
+        logging.info(f"TAGS FOR {version} ARE {tags}")
+        for tag in tags:
             for target in self.target_repos:
                 repo = target.repo
                 release = f'{repo}:{tag}'
@@ -320,26 +344,25 @@ class ReleaseManager:
 
     def _run_test_script(self, image, version):
         if self.test_script is None or self.test_script == '':
-            logging.warning("Environment variable INTEGRATION_TEST_SCRIPT is not set; skipping tests! ")
+            logging.warning("Integration test script is not set; skipping tests! ")
             return
 
-        if not os.path.exists(self.test_script):
-            msg = f"Test script '{self.test_script}' does not exist; failing!"
-            logging.error (msg)
-            raise EnvironmentException(msg)
-
-        logging.info(f'Running integration test script: {self.test_script}')
         # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
         is_release = str(self.push_docker).lower()
         test_candidate = str(latest_minor(version, self.mac_versions)).lower()
-        script_command = [self.test_script, image.id, is_release, test_candidate]
+        #script_command = [self.test_script, image.id, is_release, test_candidate]
 
-        # run provided test script - terminate with error if the test failed
-        proc = subprocess.run(script_command)
-        if proc.returncode != 0:
-            msg = f"Test script '{self.test_script}' exited with non-zero ({proc.returncode}); failing!"
-            logging.error(msg)
-            raise TestFailedException(msg)
+        run_script(self.test_script, image.id, is_release, test_candidate)
+
+    def _run_push_hook(self, release):
+        if self.push_hook is None or self.push_hook == '':
+            logging.warning("Push hook is not set; skipping tests! ")
+            return
+
+        logging.info(f'Running script: {self.push_hook}')
+        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
+        #script_command = [self.test_script, image.id, is_release, test_candidate]
+        run_script(self.push_hook, release)
 
     def unbuilt_versions(self, candidate_versions):
         # Only exclude tags that exist in all repos

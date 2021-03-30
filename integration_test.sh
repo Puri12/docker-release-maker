@@ -30,14 +30,6 @@ snyk auth -d $SNYK_TOKEN
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 
-# If we're releasing the image we should enable monitoring:
-if [ $IS_RELEASE = true ]; then
-    echo "Enabling Snyk monitoring for image $IMAGE"
-    snyk container monitor -d $IMAGE --severity-threshold=$SEV_THRESHOLD
-else
-    echo "Publish flag is not set, skipping Snyk monitoring"
-fi
-
 
 echo "######## Integration Testing ########"
 if [ $RUN_FUNCTESTS = true ]; then
