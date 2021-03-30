@@ -23,6 +23,7 @@ DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 PUSH_DOCKER_IMAGE = str2bool(os.environ.get('PUSH_DOCKER_IMAGE', True))
 INTEGRATION_TEST_SCRIPT = os.environ.get('INTEGRATION_TEST_SCRIPT', '/usr/src/app/integration_test.sh')
+PUSH_HOOK_SCRIPT = os.environ.get('PUSH_HOOK_SCRIPT', '/usr/src/app/push_hook.sh')
 JOB_OFFSET = os.environ.get('JOB_OFFSET', None)
 JOBS_TOTAL = os.environ.get('JOBS_TOTAL', None)
 if JOB_OFFSET is not None:
@@ -63,6 +64,7 @@ def main(args):
                              tag_suffixes=TAG_SUFFIXES,
                              push_docker=PUSH_DOCKER_IMAGE,
                              test_script=INTEGRATION_TEST_SCRIPT,
+                             push_hook=PUSH_HOOK_SCRIPT,
                              job_offset=JOB_OFFSET,
                              jobs_total=JOBS_TOTAL)
     if args.create:

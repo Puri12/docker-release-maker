@@ -372,6 +372,7 @@ def test_run_py_create(mocked_docker, mocked_existing_tags, mocked_mac_versions,
             os.environ[key.upper()] = value
     os.environ['DOCKER_REPO'] = refapp['docker_repos'][0]
     os.environ['INTEGRATION_TEST_SCRIPT'] = ""
+    os.environ['PUSH_HOOK_SCRIPT'] = ""
 
     from run import main, parser
     args = parser.parse_args(['--create'])
@@ -408,6 +409,7 @@ def test_run_py_update(mocked_docker, mocked_existing_tags, mocked_mac_versions,
             os.environ[key.upper()] = value
     os.environ['DOCKER_REPO'] = refapp['docker_repos'][0]
     os.environ['INTEGRATION_TEST_SCRIPT'] = ""
+    os.environ['PUSH_HOOK_SCRIPT'] = ""
 
     from run import main, parser
     args = parser.parse_args(['--update'])

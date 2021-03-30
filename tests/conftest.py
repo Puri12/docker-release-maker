@@ -16,5 +16,6 @@ def refapp():
         'tag_suffixes': 'jdk8,ubuntu'.split(','),
         'push_docker': True,
         'test_script': None,
+        'push_hook': None,
     }
     return app
