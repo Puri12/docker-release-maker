@@ -2,13 +2,13 @@
 
 # This script will invoke Snyk for an image release:
 #
-#   Usage: <path-to>/push_hook.sh <repo/image:tag>
+#   Usage: <path-to>/post_push.sh <repo/image:tag>
 
 
 set -e
 
 if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: push_hook.sh <repo/image:tag>"
+    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag>"
     exit 1
 fi
 RELEASE=$1
