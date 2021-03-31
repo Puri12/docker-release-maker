@@ -22,8 +22,8 @@ DOCKERFILE_BUILDARGS = os.environ.get('DOCKERFILE_BUILDARGS')
 DOCKERFILE_VERSION_ARG = os.environ.get('DOCKERFILE_VERSION_ARG')
 MAC_PRODUCT_KEY = os.environ.get('MAC_PRODUCT_KEY')
 PUSH_DOCKER_IMAGE = str2bool(os.environ.get('PUSH_DOCKER_IMAGE', True))
-INTEGRATION_TEST_SCRIPT = os.environ.get('INTEGRATION_TEST_SCRIPT', '/usr/src/app/integration_test.sh')
-PUSH_HOOK_SCRIPT = os.environ.get('PUSH_HOOK_SCRIPT', '/usr/src/app/push_hook.sh')
+POST_BUILD_HOOK = os.environ.get('POST_BUILD_HOOK', '/usr/src/app/post_build.sh')
+POST_PUSH_HOOK = os.environ.get('POST_PUSH_HOOK', '/usr/src/app/post_push.sh')
 JOB_OFFSET = os.environ.get('JOB_OFFSET', None)
 JOBS_TOTAL = os.environ.get('JOBS_TOTAL', None)
 if JOB_OFFSET is not None:
@@ -51,7 +51,6 @@ def main(args):
         logging.error('START_VERSION, DOCKER_REPO, DOCKERFILE_VERSION_ARG, and MAC_PRODUCT_KEY must be defined!')
         sys.exit(1)
 
-    logging.info(f'test script: {INTEGRATION_TEST_SCRIPT}')
     manager = ReleaseManager(start_version=START_VERSION,
                              end_version=END_VERSION,
                              concurrent_builds=CONCURRENT_BUILDS,
@@ -63,8 +62,8 @@ def main(args):
                              mac_product_key=MAC_PRODUCT_KEY,
                              tag_suffixes=TAG_SUFFIXES,
                              push_docker=PUSH_DOCKER_IMAGE,
-                             test_script=INTEGRATION_TEST_SCRIPT,
-                             push_hook=PUSH_HOOK_SCRIPT,
+                             post_build_hook=POST_BUILD_HOOK,
+                             post_push_hook=POST_PUSH_HOOK,
                              job_offset=JOB_OFFSET,
                              jobs_total=JOBS_TOTAL)
     if args.create:

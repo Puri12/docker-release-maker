@@ -176,16 +176,16 @@ def slice_job(versions, offset, total):
 
 def run_script(script, *args):
     if not os.path.exists(script):
-        msg = f"Test script '{script}' does not exist; failing!"
+        msg = f"Script '{script}' does not exist; failing!"
         logging.error (msg)
         raise EnvironmentException(msg)
 
     # run provided test script - terminate with error if the test failed
     script_command = [script] + list(args)
-    logging.info(f'Running integration test script: "{script_command}"')
+    logging.info(f'Running script: "{script_command}"')
     proc = subprocess.run(script_command)
     if proc.returncode != 0:
-        msg = f"Test script '{script}' exited with non-zero ({proc.returncode}); failing!"
+        msg = f"Script '{script}' exited with non-zero ({proc.returncode}); failing!"
         logging.error(msg)
         raise TestFailedException(msg)
 
@@ -194,7 +194,7 @@ class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, test_script, push_hook,
+                 mac_product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
@@ -212,8 +212,8 @@ class ReleaseManager:
         self.dockerfile_buildargs = dockerfile_buildargs
         self.dockerfile_version_arg = dockerfile_version_arg
         self.push_docker = push_docker
-        self.push_hook = push_hook
-        self.test_script = test_script
+        self.post_push_hook = post_push_hook
+        self.post_build_hook = post_build_hook
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
@@ -288,7 +288,7 @@ class ReleaseManager:
             try:
                 logging.info(f'Pushing tag "{release}"')
                 self.docker_cli.images.push(release)
-                self._run_push_hook(release)
+                self._run_post_push_hook(release)
             except requests.exceptions.ConnectionError as e:
                 if i > max_retries:
                     logging.error(f'Push failed for tag "{release}"')
@@ -328,7 +328,7 @@ class ReleaseManager:
         image = self._build_image(version)
 
         # script will terminated with error if the test failed
-        self._run_test_script(image, version)
+        self._run_post_build_hook(image, version)
 
         tags =  self.calculate_tags(version)
         logging.info(f"TAGS FOR {version} ARE {tags}")
@@ -342,27 +342,24 @@ class ReleaseManager:
 
                 self._push_release(release)
 
-    def _run_test_script(self, image, version):
-        if self.test_script is None or self.test_script == '':
-            logging.warning("Integration test script is not set; skipping tests! ")
+    def _run_post_build_hook(self, image, version):
+        if self.post_build_hook is None or self.post_build_hook == '':
+            logging.warning("Post-build hook is not set; skipping! ")
             return
 
-        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
+        # Usage: post_build.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
         is_release = str(self.push_docker).lower()
         test_candidate = str(latest_minor(version, self.mac_versions)).lower()
-        #script_command = [self.test_script, image.id, is_release, test_candidate]
 
-        run_script(self.test_script, image.id, is_release, test_candidate)
+        run_script(self.post_build_hook, image.id, is_release, test_candidate)
 
-    def _run_push_hook(self, release):
-        if self.push_hook is None or self.push_hook == '':
-            logging.warning("Push hook is not set; skipping tests! ")
+    def _run_post_push_hook(self, release):
+        if self.post_push_hook is None or self.post_push_hook == '':
+            logging.warning("Post-push hook is not set; skipping! ")
             return
 
-        logging.info(f'Running script: {self.push_hook}')
-        # Usage: integration_test.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
-        #script_command = [self.test_script, image.id, is_release, test_candidate]
-        run_script(self.push_hook, release)
+        logging.info(f'Running hook: {self.post_push_hook}')
+        run_script(self.post_push_hook, release)
 
     def unbuilt_versions(self, candidate_versions):
         # Only exclude tags that exist in all repos
