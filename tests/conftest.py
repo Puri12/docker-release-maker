@@ -17,5 +17,7 @@ def refapp():
         'push_docker': True,
         'post_build_hook': None,
         'post_push_hook': None,
+        'job_offset': None,
+        'jobs_total': None,
     }
     return app

@@ -1,5 +1,6 @@
 import itertools
 import logging
+import importlib
 import os
 from unittest import mock
 
@@ -7,6 +8,11 @@ import docker
 import pytest
 
 from releasemanager import eap_versions, existing_tags, mac_versions, ReleaseManager, str2bool, Version, latest_minor, slice_job
+
+class Dict2Class(object):
+    def __init__(self, my_dict):
+        for key in my_dict:
+            setattr(self, key, my_dict[key])
 
 def test_existing_tags(refapp):
     tags = existing_tags(refapp['docker_repos'][0])
@@ -359,24 +365,17 @@ def test_min_end_version(mocked_docker, mocked_existing_tags, mocked_mac_version
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
-def test_run_py_create(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
+def test_make_release_create(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    for key, value in refapp.items():
-        if value is None:
-            continue
-        if isinstance(value, bool):
-            os.environ[key.upper()] = str(value).lower()
-        elif isinstance(value, list):
-            os.environ[key.upper()] = ','.join(value)
-        else:
-            os.environ[key.upper()] = value
-    os.environ['DOCKER_REPO'] = refapp['docker_repos'][0]
-    os.environ['POST_BUILD_HOOK'] = ""
-    os.environ['POST_PUSH_HOOK'] = ""
 
-    from run import main, parser
-    args = parser.parse_args(['--create'])
-    main(args)
+    args = Dict2Class(refapp)
+    args.create = True
+    args.create_eap = False
+    args.update = False
+    args.docker_repos = ','.join(refapp['docker_repos'])
+
+    mr = importlib.import_module("make-releases")
+    mr.main(args)
 
     expected_tags = {
         f'"{refapp["docker_repos"][0]}:6.5.4"',
@@ -396,24 +395,17 @@ def test_run_py_create(mocked_docker, mocked_existing_tags, mocked_mac_versions,
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
 @mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
-def test_run_py_update(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
+def test_make_release_update(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
-    for key, value in refapp.items():
-        if value is None:
-            continue
-        if isinstance(value, bool):
-            os.environ[key.upper()] = str(value).lower()
-        elif isinstance(value, list):
-            os.environ[key.upper()] = ','.join(value)
-        else:
-            os.environ[key.upper()] = value
-    os.environ['DOCKER_REPO'] = refapp['docker_repos'][0]
-    os.environ['POST_BUILD_HOOK'] = ""
-    os.environ['POST_PUSH_HOOK'] = ""
 
-    from run import main, parser
-    args = parser.parse_args(['--update'])
-    main(args)
+    args = Dict2Class(refapp)
+    args.create = False
+    args.create_eap = False
+    args.update = True
+    args.docker_repos = ','.join(refapp['docker_repos'])
+
+    mr = importlib.import_module("make-releases")
+    mr.main(args)
 
     expected_tags = {
         f'"{refapp["docker_repos"][0]}:6.5.4"',
