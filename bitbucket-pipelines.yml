@@ -11,10 +11,10 @@ pipelines:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - docker build -t atlassian/docker-release-maker:latest .
 
-            - nvm install node # Snyk needs a newer version
-            - npm install -g snyk
-            - snyk auth $SNYK_TOKEN
-            - snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
+            - nvm install 14.16 # Snyk needs a newer version
+            - npm install snyk
+            - npx snyk auth $SNYK_TOKEN
+            - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
 
             - docker push atlassian/docker-release-maker:latest
             - snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
@@ -28,7 +28,7 @@ pipelines:
             - docker build -t docker-release-maker:local .
             - docker run --rm docker-release-maker:local py.test
 
-            - nvm install node # Snyk needs a newer version
-            - npm install -g snyk
-            - snyk auth $SNYK_TOKEN
-            - snyk container test docker-release-maker:local --severity-threshold=high
+            - nvm install 14.16 # Snyk needs a newer version
+            - npm install snyk
+            - npx snyk auth $SNYK_TOKEN
+            - npx snyk container test docker-release-maker:local --severity-threshold=high
