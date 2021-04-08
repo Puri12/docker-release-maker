@@ -4,7 +4,6 @@
 #
 #   Usage: <path-to>/post_push.sh <repo/image:tag>
 
-
 set -e
 
 if [ $# -eq 0 ]; then
@@ -24,7 +23,7 @@ fi
 echo "Authenticating with Snyk..."
 snyk auth -d $SNYK_TOKEN
 
-echo "Enabling Snyk monitoring for image $IMAGE"
+echo "Enabling Snyk monitoring for image $RELEASE"
 # Note: A quirk of Snyk is that if we release a new version of the
 # same container (e.g. mycontainer:1.0.1 → mycontainer:1.0.2), the
 # former version will be removed and no longer monitored. As we need
