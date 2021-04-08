@@ -56,12 +56,8 @@ pipelines:
 Note that in the example above, `docker login` is called directly and Docker Release Maker
 simply uses the existing authentication.
 
-A more comprehensive list of examples can be found in **bitbucket-pipelines.yml.example** 
-inside this repository.
-
-The release-maker also supports an alternative configuration via environment
-variables if invoked as `run.py`. This mode is deprecated and will be removed in
-the future.
+More comprehensive examples can be found in the Atlassian Docker image
+repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/bitbucket-pipelines.yml
 
 ### Required parameters
 

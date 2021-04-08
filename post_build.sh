@@ -2,14 +2,14 @@
 
 # This script will invoke Snyk for an image, optionally, any functional tests if present.
 #
-#   Usage: <path-to>/integration_test.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
+#   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
 #
 # The release image flag defaults to false, the testing flag to true.
 
 set -e
 
 if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: integration_test.sh <image tag or hash> ['true' if a release image]"
+    echo "No docker image supplied. Syntax: post_build.sh <image tag or hash> ['true' if a release image]"
     exit 1
 fi
 IMAGE=$1
@@ -29,14 +29,6 @@ snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
-
-# If we're releasing the image we should enable monitoring:
-if [ $IS_RELEASE = true ]; then
-    echo "Enabling Snyk monitoring for image $IMAGE"
-    snyk container monitor -d $IMAGE --severity-threshold=$SEV_THRESHOLD
-else
-    echo "Publish flag is not set, skipping Snyk monitoring"
-fi
 
 
 echo "######## Integration Testing ########"

@@ -2,9 +2,8 @@
 
 Running tests locally:
 
-    pipenv shell
-    pip install --no-cache-dir -r requirements.txt 
-    py.test
+    pipenv run pip install --no-cache-dir -r requirements.txt 
+    pipenv run py.test
     # Run single test
-    py.test -k <test-function>
+    pipenv run py.test -k <test-function>
 
