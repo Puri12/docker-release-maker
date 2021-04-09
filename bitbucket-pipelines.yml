@@ -17,7 +17,7 @@ pipelines:
             - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
 
             - docker push atlassian/docker-release-maker:latest
-            - snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
 
     '**':
       - step:

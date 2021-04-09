@@ -27,7 +27,7 @@ echo "Enabling Snyk monitoring for image $RELEASE"
 # Note: A quirk of Snyk is that if we release a new version of the
 # same container (e.g. mycontainer:1.0.1 → mycontainer:1.0.2), the
 # former version will be removed and no longer monitored. As we need
-# to support mulitple concurrent versions of the same container
+# to support multiple concurrent versions of the same container
 # (e.g. EAPs), we also set the project name, which will create a
 # separate monitoring project for each version.
 snyk container monitor -d \
