@@ -12,7 +12,18 @@ if [ $# -eq 0 ]; then
 fi
 RELEASE=$1
 
-echo "######## Security Scan ########"
+# Quick check if this is a 'full' (i.e. major.minor.patch) version:
+THIRD=`echo $RELEASE | cut -d: -f2 | cut -d. -f3`
+if [ x"$THIRD" != "x" ]; then
+    FULL_VER=true
+fi
+
+if [ "$FULL_VER" != "true" ]; then
+    echo "Version $RELEASE is not a full version tag, skipping security monitoring"
+    exit 0
+fi
+
+echo "######## Security Image Monitoring ########"
 SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
 if [ x"${SNYK_TOKEN}" = 'x' ]; then
@@ -26,13 +37,16 @@ snyk auth -d $SNYK_TOKEN
 echo "Enabling Snyk monitoring for image $RELEASE"
 # Note: A quirk of Snyk is that if we release a new version of the
 # same container (e.g. mycontainer:1.0.1 → mycontainer:1.0.2), the
-# former version will be removed and no longer monitored. As we need
-# to support multiple concurrent versions of the same container
-# (e.g. EAPs), we also set the project name, which will create a
-# separate monitoring project for each version.
+# former version will be removed and no longer monitored. As we
+# need to support multiple concurrent versions of the same
+# container (e.g. EAPs), we also set the project name, which will
+# create a separate monitoring project for each version. We need
+# to replace the ':' version delimiter to prevent Snyk attempting
+# to parse it.
+PROJECT=`echo $RELEASE | tr ':.' '-'`
 snyk container monitor -d \
      --severity-threshold=$SEV_THRESHOLD \
-     --project-name=$RELEASE \
+     --project-name=$PROJECT \
      $RELEASE
 
 exit 0
