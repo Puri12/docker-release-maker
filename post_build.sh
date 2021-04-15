@@ -16,6 +16,15 @@ IMAGE=$1
 IS_RELEASE=${2:-false}
 RUN_FUNCTESTS=${3:-true}
 
+
+echo "######## Dockerfile Linting ########"
+DOCKER_LINT=${DOCKER_LINT:-'/usr/src/app/hadolint'}
+for dockerfile in Dockerfile*; do
+    echo "Linting ${dockerfile} ..."
+    ${DOCKER_LINT} ${dockerfile}
+done
+
+
 echo "######## Security Scan ########"
 SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
