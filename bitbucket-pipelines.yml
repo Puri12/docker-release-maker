@@ -10,13 +10,11 @@ pipelines:
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - docker build -t atlassian/docker-release-maker:latest .
+            - docker push atlassian/docker-release-maker:latest
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
-
-            - docker push atlassian/docker-release-maker:latest
             - npx snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
 
     '**':
@@ -25,6 +23,10 @@ pipelines:
           services:
             - docker
           script:
+            - curl -sL https://github.com/hadolint/hadolint/releases/download/v2.1.0/hadolint-Linux-x86_64 -o ./hadolint
+            - chmod +x ./hadolint
+            - ./hadolint Dockerfile
+
             - docker build -t docker-release-maker:local .
             - docker run --rm docker-release-maker:local py.test
 
