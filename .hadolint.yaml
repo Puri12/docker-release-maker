@@ -1,4 +1,6 @@
 ignored:
+  # Allow package upgrade
+  - DL3017
   # Disable version-pinning requirement
   - DL3013
   - DL3016
