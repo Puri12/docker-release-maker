@@ -1,6 +1,10 @@
 #!/bin/sh
 
-# This script will invoke Snyk for an image, optionally, any functional tests if present.
+# This script will do the following:
+#
+#  * Invoke Snyk for an image
+#  * Perform linting of the Dockerfile(s)
+#  * Optionally, run functional tests if present.
 #
 #   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
 #
