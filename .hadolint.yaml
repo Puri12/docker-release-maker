@@ -1,0 +1,5 @@
+ignored:
+  - DL3017 # Package upgrades
+  - DL3013 # Version pinning
+  - DL3016 # Version pinning
+  - DL3018 # Version pinning
