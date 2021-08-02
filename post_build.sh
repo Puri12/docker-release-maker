@@ -43,10 +43,12 @@ snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 echo "Performing security scan from the directory [`pwd`]"
-echo "Listing contents... "
-ls -la
+SNYK_FILE=.snyk
+if [ -f "$SNYK_FILE" ]; then
+  echo "Performing security scan with .snyk policy file"
+  snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD --policy-path=$SNYK_FILE
+fi 
 snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
-
 
 echo "######## Integration Testing ########"
 if [ $RUN_FUNCTESTS = true ]; then
