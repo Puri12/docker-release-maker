@@ -22,6 +22,7 @@ RUN_FUNCTESTS=${3:-true}
 
 
 echo "######## Dockerfile Linting ########"
+echo "Performing Dockerfile lint from the directory [`pwd`]"
 DOCKER_LINT=${DOCKER_LINT:-'/usr/src/app/hadolint'}
 for dockerfile in Dockerfile*; do
     echo "Linting ${dockerfile} ..."
@@ -41,7 +42,7 @@ echo "Authenticating with Snyk..."
 snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
-echo "Performing scan from the directory [`pwd`]"
+echo "Performing security scan from the directory [`pwd`]"
 snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 
 
