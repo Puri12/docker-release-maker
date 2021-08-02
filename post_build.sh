@@ -43,6 +43,8 @@ snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 echo "Performing security scan from the directory [`pwd`]"
+echo "Listing contents... "
+ls -la
 snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 
 
