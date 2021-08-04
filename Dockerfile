@@ -7,9 +7,10 @@ WORKDIR /usr/src/app
 
 COPY requirements.txt /usr/src/app/requirements.txt
 RUN apk upgrade --no-cache \
-    && apk add --no-cache git npm docker-cli docker-compose curl \
+    && apk add --no-cache git npm docker-cli curl \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir docker-compose==1.23.2 \
     && npm install -g snyk
 
 ARG HADOLINT_VERSION=2.1.0
