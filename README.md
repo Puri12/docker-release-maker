@@ -147,11 +147,11 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
   Whether to push the image to the specified repo. Usually set to false on
   PRs/branches.
 
-* `--integration-test-script`: (default: '/usr/src/app/integration_test.sh')
+* `--post-build-hook`: (default: './release-maker/post_build.sh')
 
   The test script to run after the build of each image. If the script returns
   non-zero the release process will end. It defaults to the
-  `integration_test.sh` script in this repository. For more details on this
+  `post_build.sh` script in this repository. For more details on this
   script see the section below.
 
 ### Integration test script
@@ -163,8 +163,8 @@ script or a default. This script is passed 2 parameters:
 * A `"true"` if the script is being invoked in the context of a release rather
   than a branch or PR build.
 
- If `--integration-test-script` is not set, the default
- [integration_test.sh](integration_test.sh) is invoked. This takes the following
+ If `--post-build-hook` is not set, the default
+ [post_build.sh](post_build.sh) is invoked. This takes the following
  parameters:
 1. An image tag or hash (mandatory)
 1. An 'is-release' flag (default: false)

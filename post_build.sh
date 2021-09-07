@@ -23,7 +23,7 @@ RUN_FUNCTESTS=${3:-true}
 
 echo "######## Dockerfile Linting ########"
 echo "Performing Dockerfile lint from the directory [`pwd`]"
-DOCKER_LINT=${DOCKER_LINT:-'/usr/src/app/hadolint'}
+DOCKER_LINT=${DOCKER_LINT:-'hadolint'}
 for dockerfile in Dockerfile*; do
     echo "Linting ${dockerfile} ..."
     ${DOCKER_LINT} ${dockerfile}
@@ -47,7 +47,7 @@ SNYK_FILE=.snyk
 if [ -f "$SNYK_FILE" ]; then
   echo "Performing security scan with .snyk policy file"
   snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD --policy-path=$SNYK_FILE
-else 
+else
   snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
 fi
 

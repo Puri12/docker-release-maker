@@ -26,10 +26,10 @@ def parse_args():
     parser.add_argument('--default-release', dest='default_release', action='store_true')
     parser.add_argument('--dockerfile', dest='dockerfile', default='Dockerfile')
     parser.add_argument('--dockerfile-buildargs', dest='dockerfile_buildargs')
-    parser.add_argument('--post-build-hook', dest='post_build_hook', default='/usr/src/app/post_build.sh')
+    parser.add_argument('--post-build-hook', dest='post_build_hook', default='./release-maker/post_build.sh')
 
     parser.add_argument('--push', dest='push_docker', action='store_true')
-    parser.add_argument('--post-push-hook', dest='post_push_hook', default='/usr/src/app/post_push.sh')
+    parser.add_argument('--post-push-hook', dest='post_push_hook', default='./release-maker/post_push.sh')
 
     parser.add_argument('--job-offset', dest='job_offset', type=int, default=None)
     parser.add_argument('--jobs-total', dest='jobs_total', type=int, default=None)
