@@ -4,8 +4,6 @@ set -e
 
 SHDIR=$(dirname $0)
 
-apk add --no-cache git curl
-git submodule update --init --recursive
 pip install -q -r ${SHDIR}/requirements.txt
 
 HADOLINT_VERSION=2.1.0
