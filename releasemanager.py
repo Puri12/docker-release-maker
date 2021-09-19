@@ -127,7 +127,6 @@ def eap_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
-
 def latest(version, mac_versions):
     versions = [v for v in mac_versions]
     versions.sort(key=lambda s: [int(u) for u in s.split('.')])
@@ -174,6 +173,7 @@ def slice_job(versions, offset, total):
     end = start + jsize
     return versions[start:end]
 
+
 def run_script(script, *args):
     if not os.path.exists(script):
         msg = f"Script '{script}' does not exist; failing!"
@@ -188,6 +188,10 @@ def run_script(script, *args):
         msg = f"Script '{script}' exited with non-zero ({proc.returncode}); failing!"
         logging.error(msg)
         raise TestFailedException(msg)
+
+
+def git_hash():
+    return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()
 
 
 class ReleaseManager:
@@ -301,7 +305,10 @@ class ReleaseManager:
 
 
     def _build_image(self, version):
-        buildargs = {self.dockerfile_version_arg: version}
+        buildargs = {
+            self.dockerfile_version_arg: version,
+            'COMMIT_HASH': git_hash()
+        }
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
         buildargs_log_str = ', '.join(['{}={}'.format(*i) for i in buildargs.items()])
