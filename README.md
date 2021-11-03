@@ -147,37 +147,53 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
   Whether to push the image to the specified repo. Usually set to false on
   PRs/branches.
 
-* `--integration-test-script`: (default: '/usr/src/app/integration_test.sh')
+* `--post-build-hook`: (default: 'usr/src/app/post_build.sh')
 
-  The test script to run after the build of each image. If the script returns
+  The script to run after the build of each image. If the script returns
   non-zero the release process will end. It defaults to the
-  `integration_test.sh` script in this repository. For more details on this
+  `post_build.sh` script in this repository. For more details on this
   script see the section below.
 
-### Integration test script
+* `--post-push-hook`: (default: 'usr/src/app/post_push.sh')
 
-As noted above, the release-manager will invoke a specified integration test
-script or a default. This script is passed 2 parameters:
+  The script to run after the push of each image. If the script returns
+  non-zero the release process will end. It defaults to the
+  `post_push.sh` script in this repository. For more details on this
+  script see the section below.
+
+### Post build/push image validation scripts
+
+As noted above, the release-manager will invoke certain scripts at the
+post-build and post-push phases. These default to the included ones, but can be
+overridden on the commandline:
+
+#### Post Build Hook
+
+This is invoked after the image is built but before it is pushed the the
+repository. Its purpose is to run any functional, acceptance or security tests
+that are required before release.
+
+* Invokes a linter against the Dockerfile(s) (defaults to hadolint)
+* Invokes the Snyk security scanner (in local-only test mode)
+* Invokes a functional test script if provided by the image repository being
+  built (see below).
+
+The script takes the following arguments (provided by the release-mananger):
 
 * The hash of the locally built image.
-* A `"true"` if the script is being invoked in the context of a release rather
-  than a branch or PR build.
+* An optional flag for if the script is being invoked in the context of a
+  release rather than a branch or PR build (defaults to false).
+* An optional flag that specifies whether the functional tests should be run
+  (defaults to true)
 
- If `--integration-test-script` is not set, the default
- [integration_test.sh](integration_test.sh) is invoked. This takes the following
- parameters:
-1. An image tag or hash (mandatory)
-1. An 'is-release' flag (default: false)
-1. A 'test-candidate' flag (default: false)
+The default script will perform the following actions:
 
-The script will perform the following actions:
-
-* Invoke [Snyk](https://snyk.io/) container testing against the supplied image.
-* If the release flag is set it will register the image with Snyk for ongoing
-  monitoring.
-* If `test_candidate` flag is `true`, and the file `func-tests/run-functests`
-  (in the product Docker repository) exists and is executable it is invoked with
-  the image.  For an example of this see [the Jira container
+* Invoke a linter for the Dockerfile(s). The linter used can be overridden by setting the `DOCKER_LINT`
+  environment variable; this default to [hadolint](https://github.com/hadolint/hadolint). 
+* Invoke [Snyk](https://snyk.io/) _local_ container testing against the supplied image.
+* If functional test flag is `true`, and the file `func-tests/run-functests` (in
+  the product Docker repository) exists and is executable it is invoked with the
+  image.  For an example of this see [the Jira container
   functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
   functional testing script. Optionally, this script can be overridden via the
   environment variable `FUNCTEST_SCRIPT`.
