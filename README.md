@@ -169,16 +169,11 @@ overridden on the commandline:
 
 #### Post Build Hook
 
-This is invoked after the image is built but before it is pushed the the
+This is invoked after the image is built but before it is pushed to the
 repository. Its purpose is to run any functional, acceptance or security tests
 that are required before release.
 
-* Invokes a linter against the Dockerfile(s) (defaults to hadolint)
-* Invokes the Snyk security scanner (in local-only test mode)
-* Invokes a functional test script if provided by the image repository being
-  built (see below).
-
-The script takes the following arguments (provided by the release-mananger):
+The script takes the following arguments (provided by the release-manager):
 
 * The hash of the locally built image.
 * An optional flag for if the script is being invoked in the context of a
@@ -190,13 +185,27 @@ The default script will perform the following actions:
 
 * Invoke a linter for the Dockerfile(s). The linter used can be overridden by setting the `DOCKER_LINT`
   environment variable; this default to [hadolint](https://github.com/hadolint/hadolint). 
-* Invoke [Snyk](https://snyk.io/) _local_ container testing against the supplied image.
+* Invoke [Snyk](https://snyk.io/) [local container testing](https://docs.snyk.io/products/snyk-container/snyk-cli-for-container-security)
+  against the supplied image.
 * If functional test flag is `true`, and the file `func-tests/run-functests` (in
   the product Docker repository) exists and is executable it is invoked with the
   image.  For an example of this see [the Jira container
   functests](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
   functional testing script. Optionally, this script can be overridden via the
   environment variable `FUNCTEST_SCRIPT`.
+
+#### Post Push Hook
+
+This is invoked after the image is pushed to the repository. It's initial
+purpose is to enable ongoing security monitoring of published images.
+
+The script takes the following arguments (provided by the release-manager):
+
+* The tag of the image to monitor (usually in `<repository>/<image-name>:<version>` format).
+
+The default script will perform the following actions:
+
+* Invokes the Snyk security scanner in [container monitoring mode](https://docs.snyk.io/products/snyk-container/snyk-cli-for-container-security).
 
 ## Tagging
 
