@@ -15,7 +15,7 @@ pipelines:
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test atlassian/docker-release-maker:latest
+            - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
             - npx snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
 
     '**':
