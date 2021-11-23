@@ -33,7 +33,7 @@ echo "Enabling Snyk monitoring for image $RELEASE"
 snyk container monitor -d \
      --severity-threshold=$SEV_THRESHOLD \
      --project-name=$RELEASE \
-     --project-tags=team-name=dc-deployment
+     --project-tags=team-name=dc-deployment \
      $RELEASE
 
 exit 0
