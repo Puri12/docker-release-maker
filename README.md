@@ -10,6 +10,29 @@ image for Atlassian product Docker-image build & test pipelines it also includes
 tools and dependencies, including Python test dependencies; see the
 [Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) for details.
 
+## Background
+
+Ideally, Docker images for applications are built alongside the
+application. The 'normal' flow would look like this:
+
+1. $COMPANY releases $APP v1.2.3
+1. $APP v1.2.3 binaries are built in CI
+1. In the same CI pipeline, the Docker image $COMPANY/$APP:1.2.3 is built from
+   the binaries.
+1. Binaries and Docker image are published (Docker Hub in the case of the Docker
+   image).
+   
+The issue with this (from our point of view) is that the Docker images are
+immutable, and do not have the ability to have new features of fixes added
+retroactively. As the container world is still in a process of evolution (in
+particular with regards to Kubernetes), we require the ability to update the
+Docker images to accommodate new features. For a concrete example, the
+development of the [Atlassian Data Center Helm
+Charts](https://github.com/atlassian/data-center-helm-charts) required a number
+of fixes and additions, such as integrated lifecycle hooks and signal-handling
+improvements.
+
+
 ## Configuration
 
 Docker Release Maker can be run via Bitbucket Pipelines to create new images for
