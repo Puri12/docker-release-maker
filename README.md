@@ -12,8 +12,10 @@ tools and dependencies, including Python test dependencies; see the
 
 ## Background
 
-Ideally, Docker images for applications are built alongside the
-application. The 'normal' flow would look like this:
+For historical reasons the original Dockerised version of the Atlassian
+applications were developed separately from the applications
+themselves. Ideally, Docker images for applications should live with and be
+built alongside the application. The 'normal' flow would look like this:
 
 1. $COMPANY releases $APP v1.2.3
 1. $APP v1.2.3 binaries are built in CI
@@ -21,7 +23,7 @@ application. The 'normal' flow would look like this:
    the binaries.
 1. Binaries and Docker image are published (Docker Hub in the case of the Docker
    image).
-   
+
 The issue with this (from our point of view) is that the Docker images are
 immutable, and do not have the ability to have new features of fixes added
 retroactively. As the container world is still in a process of evolution (in
@@ -32,11 +34,51 @@ Charts](https://github.com/atlassian/data-center-helm-charts) required a number
 of fixes and additions, such as integrated lifecycle hooks and signal-handling
 improvements.
 
+For this reason, the configuration and build process for our Docker images is
+held in separate respositories, and have their own build pipeline. At a high
+level, the flow looks like:
+
+1. The $PROD team release $PROD version 3.4.5.
+1. The $PROD binaries are built in our internal CI system.
+1. The $PROD binaries are released to our download site.
+1. The [Atlassian Marketplace](https://marketplace.atlassian.com/) DB is updated
+   with the new version, which makes it available on our website.
+
+Meanwhile, in the $PROD Docker repository
+(e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
+a periodic [Pipeline](https://bitbucket.org/product/features/pipelines) that
+does the following:
+
+1. The build script (this repository) retrieves a list of $PROD versions from
+   Marketplace via the API.
+1. The script then scans Docker Hub for the available Docker images for $PROD.
+1. The 2 lists are compared, and if any versions do not have a corresponding
+   image the the following actions are performed:
+   1. The image is built using the Dockerfile in the repository.
+   1. The Dockerfile is linted (using
+      [Hadolint](https://github.com/hadolint/hadolint) by default).
+   1. The built image is scanned locally using [Snyk](https://snyk.io/).
+   1. If the repository has functional tests defined, these are run.
+
+(The above test & scanning steps are run via a hook; see `post_build.sh` and
+`--post-build-hook` below).
+
+The above steps build images for existing versions. However, we also want the
+ability to rebuild existing images to pick up changes to the Dockerfile
+configuration and other related changes. So in addition to the periodic
+pipeline, we also trigger a pipeline on changes the product repository. This
+pipeline does the following:
+
+1.
+
+
+## Manual runs
+
 
 ## Configuration
 
 Docker Release Maker can be run via Bitbucket Pipelines to create new images for
-unreleased product versions, or to rebuild and update all published images. 
+unreleased product versions, or to rebuild and update all published images.
 
 The easiest way to configure Docker Release Maker is to set the desired options
 on the command-line, and then call `make-releases.py --create` to create new
@@ -60,7 +102,7 @@ pipelines:
           script:
             - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
             - >
-              python make-releases.py 
+              python make-releases.py
                 --update
                 --start-version='7.13'
                 --end-version='9'
@@ -93,7 +135,7 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
 
    The ceiling value of versions to build images for (exclusive). This can be any level of
    precision, e.g. '9', '9.1', or '9.1.2'. If not set, this will default to the major
-   version component of `--start-version` + 1. 
+   version component of `--start-version` + 1.
 
 * `--base-version`
 
@@ -112,7 +154,7 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
 
 * `--mac-product-key`
 
-   The product key used by the Atlassian Marketplace API, to determine available releases. 
+   The product key used by the Atlassian Marketplace API, to determine available releases.
    Valid values include:
    * bamboo
    * bitbucket
@@ -129,24 +171,24 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
 * `--concurrent-builds` (default: 1)
 
    The number of images to build concurrently. This may be increased to improve time to
-   completion when building a large number of images, or reduced in constrained 
+   completion when building a large number of images, or reduced in constrained
    environments. The default value should be optimal in a standard Bitbucket Pipelines
    environment.
 
 * `--default-release` (default: false)
 
-   Whether the build should be considered the default. When this is true, "plain" version 
-   tags and the `latest` tag will be applied. This is useful when there are multiple 
-   variations of an image available, e.g. based on different JDK versions or with 
+   Whether the build should be considered the default. When this is true, "plain" version
+   tags and the `latest` tag will be applied. This is useful when there are multiple
+   variations of an image available, e.g. based on different JDK versions or with
    different base OS images, and one needs to be set as the default. In cases where no
-   variants exist it is highly recommended that this be set to `true`. See "Tagging" for 
-   more info on how tags are calculated and applied. 
+   variants exist it is highly recommended that this be set to `true`. See "Tagging" for
+   more info on how tags are calculated and applied.
 
 * `--dockerfile` (default: Dockerfile)
 
    Specify a custom Dockerfile path to use. This can be useful if multiple Dockerfile
    variations exist in the one repo, e.g. secondary Alpine builds. The value can include
-   folder paths, and should point to a specific Dockerfile name, e.g. 
+   folder paths, and should point to a specific Dockerfile name, e.g.
    `path/to/Dockerfile-custom`
 
 * `--dockerfile-buildargs` (default: none)
@@ -161,9 +203,9 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
 * `--tag-suffixes` (default: none)
 
    Additional suffixes to create suffixed tags for. When present, suffixed version tags
-   will be applied. This should be a comma separated list of desired tag suffixes, e.g. 
-   `TAG_SUFFIXES='ubuntu,jdk8'`. See "Tagging" for more info on how tags are calculated 
-   and applied. 
+   will be applied. This should be a comma separated list of desired tag suffixes, e.g.
+   `TAG_SUFFIXES='ubuntu,jdk8'`. See "Tagging" for more info on how tags are calculated
+   and applied.
 
 * `--push` (default: false)
 
@@ -207,7 +249,7 @@ The script takes the following arguments (provided by the release-manager):
 The default script will perform the following actions:
 
 * Invoke a linter for the Dockerfile(s). The linter used can be overridden by setting the `DOCKER_LINT`
-  environment variable; this default to [hadolint](https://github.com/hadolint/hadolint). 
+  environment variable; this default to [hadolint](https://github.com/hadolint/hadolint).
 * Invoke [Snyk](https://snyk.io/) [local container testing](https://docs.snyk.io/products/snyk-container/snyk-cli-for-container-security)
   against the supplied image.
 * If functional test flag is `true`, and the file `func-tests/run-functests` (in
@@ -235,7 +277,7 @@ The default script will perform the following actions:
 One of the primary features of this tool is tagging support. At build time, all relevant
 tags are calculated, and are added to a single image build. This ensures that there is
 only a single published artefact for a given version, regardless of how many tags are
-applied. 
+applied.
 
 For configurations where `--default-release` is `true` then "plain" version tags will be
 added. Given the example version "6.5.4" the following plain tags may be created:
@@ -247,7 +289,7 @@ added. Given the example version "6.5.4" the following plain tags may be created
 
 * `6.5`
 
-   The `major.minor` version tag. Only added if `6.5.4` is the most recent release 
+   The `major.minor` version tag. Only added if `6.5.4` is the most recent release
    for this minor version.
 
 * `6`
@@ -264,7 +306,7 @@ It's highly recommended that at least one build be set to default to ensure plai
 are created.
 
 
-For configurations where `TAG_SUFFIXES` is defined then additional suffix tags will be 
+For configurations where `TAG_SUFFIXES` is defined then additional suffix tags will be
 added for each suffix. Given the example suffix "ubuntu" the following tags may be
 created:
 
@@ -274,7 +316,7 @@ created:
 
 * `6.5-ubuntu`
 
-   The `major.minor-suffix` version tag. Only added if `6.5.4` is the most recent release 
+   The `major.minor-suffix` version tag. Only added if `6.5.4` is the most recent release
    for this minor version.
 
 * `6-ubuntu`
