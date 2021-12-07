@@ -10,7 +10,34 @@ image for Atlassian product Docker-image build & test pipelines it also includes
 tools and dependencies, including Python test dependencies; see the
 [Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) for details.
 
-## Background
+### Relationship with the products and Docker repositories
+
+For any given Atlassian Docker image there are three repositories:
+
+1. The upstream application repository (e.g. Jira). This is used to build the
+   application binaries that are packaged into Docker images. The Docker
+   repositories do not interact with this directly; the binaries are available
+   on our downloads site.
+1. The application Docker repository
+   (e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/)),
+   which contains the `Dockerfile` and related runtime scripts and configuration
+   templates that constitute the published Docker images (i.e. what ends up on
+   Docker Hub).
+1. This repository (`docker-release-maker`), that contains the build tooling
+   that can scan for product versions and performs build and test for them. The
+   output of this repository is a special Docker image
+   ([atlassian/docker-release-maker](https://hub.docker.com/r/atlassian/docker-release-maker))
+   that can be used by Bitbucket Pipelines to automate build/test/push of new
+   images and updating existing ones.
+
+In other words, this repository is purely a build framework, that knows little
+about our products other than how to scan Marketplace for versions. Packaging it
+as a Docker image (via [bitbucket-pipelines.yml](bitbucket-pipelines.yml)) is a
+convenience step to make the tooling easy to use in the application Bitbucket
+Pipelines. The per-product knowledge is in the individual application Docker
+repositories.
+
+### Background
 
 For historical reasons the original Dockerised version of the Atlassian
 applications were developed separately from the applications
@@ -34,8 +61,10 @@ Charts](https://github.com/atlassian/data-center-helm-charts) required a number
 of fixes and additions, such as integrated lifecycle hooks and signal-handling
 improvements.
 
-For this reason, the configuration and build process for our Docker images is
-held in separate repositories, and have their own build pipeline. At a high
+### How the build process works
+
+For the reasons above, the configuration and build process for our Docker images
+is held in separate repositories, and have their own build pipeline. At a high
 level, the flow looks like:
 
 1. The $PROD team release $PROD version 3.4.5.
@@ -45,7 +74,7 @@ level, the flow looks like:
    with the new version, which makes it available on our website.
 
 Meanwhile, in the $PROD Docker repository
-(e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/):
+(e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/)):
 
 1. A periodic [Pipeline](https://bitbucket.org/product/features/pipelines) job
    run (hourly for most repositories).
@@ -80,13 +109,19 @@ pipeline does the following:
    limit this to in-support versions).
 1. For every version, perform the build/lint/test/release sequence from above.
 
-## Manual runs
+This means that changes to the individual Docker repositories are propogated to
+the published images
+
+### Manual runs
 
 
-## Configuration
+
+## Running the build script
 
 Docker Release Maker can be run via Bitbucket Pipelines to create new images for
 unreleased product versions, or to rebuild and update all published images.
+
+### Configuration
 
 The easiest way to configure Docker Release Maker is to set the desired options
 on the command-line, and then call `make-releases.py --create` to create new
