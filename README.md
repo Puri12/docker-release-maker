@@ -15,33 +15,6 @@ image for Atlassian product Docker-image build & test pipelines it also includes
 tools and dependencies, including Python test dependencies; see the
 [Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) for details.
 
-## Relationship with the products and Docker repositories
-
-For any given Atlassian Docker image there are three repositories:
-
-1. The upstream application repository (e.g. Jira). This is used to build the
-   application binaries that are packaged into Docker images. The Docker
-   repositories do not interact with this directly; the binaries are available
-   on our downloads site.
-1. The application Docker repository
-   (e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/)),
-   which contains the `Dockerfile` and related runtime scripts and configuration
-   templates that constitute the published Docker images (i.e. what ends up on
-   Docker Hub).
-1. This repository (`docker-release-maker`), that contains the build tooling
-   that can scan for product versions and performs build and test for them. The
-   output of this repository is a special Docker image
-   ([atlassian/docker-release-maker](https://hub.docker.com/r/atlassian/docker-release-maker))
-   that can be used by Bitbucket Pipelines to automate build/test/push of new
-   images and updating existing ones.
-
-In other words, this repository is purely a build framework, that knows little
-about our products other than how to scan Marketplace for versions. Packaging it
-as a Docker image (via [bitbucket-pipelines.yml](bitbucket-pipelines.yml)) is a
-convenience step to make the tooling easy to use in the application Bitbucket
-Pipelines. The per-product knowledge is in the individual application Docker
-repositories.
-
 ## Background
 
 For historical reasons the original Dockerised version of the Atlassian
@@ -129,6 +102,33 @@ feature](https://support.atlassian.com/bitbucket-cloud/docs/set-up-or-run-parall
 the application repositories use a template to generate the parallel steps. See
 the repositories for details (e.g. [the Jira
 bitbucket-pipelines.yml.j2](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/bitbucket-pipelines.yml.j2)).
+
+## Relationship with the products and Docker repositories
+
+For any given Atlassian Docker image there are three repositories:
+
+1. The upstream application repository (e.g. Jira). This is used to build the
+   application binaries that are packaged into Docker images. The Docker
+   repositories do not interact with this directly; the binaries are available
+   on our downloads site.
+1. The application Docker repository
+   (e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/)),
+   which contains the `Dockerfile` and related runtime scripts and configuration
+   templates that constitute the published Docker images (i.e. what ends up on
+   Docker Hub).
+1. This repository (`docker-release-maker`), that contains the build tooling
+   that can scan for product versions and performs build and test for them. The
+   output of this repository is a special Docker image
+   ([atlassian/docker-release-maker](https://hub.docker.com/r/atlassian/docker-release-maker))
+   that can be used by Bitbucket Pipelines to automate build/test/push of new
+   images and updating existing ones.
+
+In other words, this repository is purely a build framework, that knows little
+about our products other than how to scan Marketplace for versions. Packaging it
+as a Docker image (via [bitbucket-pipelines.yml](bitbucket-pipelines.yml)) is a
+convenience step to make the tooling easy to use in the application Bitbucket
+Pipelines. The per-product knowledge is in the individual application Docker
+repositories.
 
 # Running the build script
 
