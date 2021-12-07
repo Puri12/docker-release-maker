@@ -35,7 +35,7 @@ of fixes and additions, such as integrated lifecycle hooks and signal-handling
 improvements.
 
 For this reason, the configuration and build process for our Docker images is
-held in separate respositories, and have their own build pipeline. At a high
+held in separate repositories, and have their own build pipeline. At a high
 level, the flow looks like:
 
 1. The $PROD team release $PROD version 3.4.5.
@@ -45,11 +45,11 @@ level, the flow looks like:
    with the new version, which makes it available on our website.
 
 Meanwhile, in the $PROD Docker repository
-(e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/)
-a periodic [Pipeline](https://bitbucket.org/product/features/pipelines) that
-does the following:
+(e.g. [docker-atlassian-jira](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/):
 
-1. The build script (this repository) retrieves a list of $PROD versions from
+1. A periodic [Pipeline](https://bitbucket.org/product/features/pipelines) job
+   run (hourly for most repositories).
+1. This build script (this repository) retrieves a list of $PROD versions from
    Marketplace via the API.
 1. The script then scans Docker Hub for the available Docker images for $PROD.
 1. The 2 lists are compared, and if any versions do not have a corresponding
@@ -58,10 +58,16 @@ does the following:
    1. The Dockerfile is linted (using
       [Hadolint](https://github.com/hadolint/hadolint) by default).
    1. The built image is scanned locally using [Snyk](https://snyk.io/).
-   1. If the repository has functional tests defined, these are run.
+   1. If the repository has functional tests defined, AND this is the latest
+      point release, these are run.
+   1. The image is pushed to Docker Hub.
 
-(The above test & scanning steps are run via a hook; see `post_build.sh` and
-`--post-build-hook` below).
+The above test & scanning steps are run via a hook; see `post_build.sh` and
+`--post-build-hook` below. Additionally, as noted above, the func-tests are only
+run for the latest point-release of each version (e.g. 1.2.2 and 1.3.2, but not
+1.2.1 or 1.3.1). This is to cut down on the already long test times; we assume
+there should not be major issues between minor versions, and if so upgrading to
+the latest minor version should be a reasonable fix.
 
 The above steps build images for existing versions. However, we also want the
 ability to rebuild existing images to pick up changes to the Dockerfile
@@ -69,8 +75,10 @@ configuration and other related changes. So in addition to the periodic
 pipeline, we also trigger a pipeline on changes the product repository. This
 pipeline does the following:
 
-1.
-
+1. Monitors the master branch for changes.
+1. Retrieve a list of application versions from Marketplace (in practice we
+   limit this to in-support versions).
+1. For every version, perform the build/lint/test/release sequence from above.
 
 ## Manual runs
 
