@@ -1,4 +1,9 @@
-## Overview
+
+# Contents
+
+[TOC]
+
+# Overview
 
 The Atlassian Docker Release Maker is a tool for automating the building,
 testing, tagging and publishing of Docker images for Atlassian's Server
@@ -10,7 +15,7 @@ image for Atlassian product Docker-image build & test pipelines it also includes
 tools and dependencies, including Python test dependencies; see the
 [Dockerfile](Dockerfile) and [requirements.txt](requirements.txt) for details.
 
-### Relationship with the products and Docker repositories
+## Relationship with the products and Docker repositories
 
 For any given Atlassian Docker image there are three repositories:
 
@@ -37,7 +42,7 @@ convenience step to make the tooling easy to use in the application Bitbucket
 Pipelines. The per-product knowledge is in the individual application Docker
 repositories.
 
-### Background
+## Background
 
 For historical reasons the original Dockerised version of the Atlassian
 applications were developed separately from the applications
@@ -61,7 +66,7 @@ Charts](https://github.com/atlassian/data-center-helm-charts) required a number
 of fixes and additions, such as integrated lifecycle hooks and signal-handling
 improvements.
 
-### How the build process works
+## How the build process works
 
 For the reasons above, the configuration and build process for our Docker images
 is held in separate repositories, and have their own build pipeline. At a high
@@ -110,18 +115,18 @@ pipeline does the following:
 1. For every version, perform the build/lint/test/release sequence from above.
 
 This means that changes to the individual Docker repositories are propogated to
-the published images
+the published images.
 
-### Manual runs
+## Batching runs
 
 
 
-## Running the build script
+# Running the build script
 
 Docker Release Maker can be run via Bitbucket Pipelines to create new images for
 unreleased product versions, or to rebuild and update all published images.
 
-### Configuration
+## Configuration
 
 The easiest way to configure Docker Release Maker is to set the desired options
 on the command-line, and then call `make-releases.py --create` to create new
@@ -167,7 +172,7 @@ simply uses the existing authentication.
 More comprehensive examples can be found in the Atlassian Docker image
 repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/bitbucket-pipelines.yml
 
-### Required parameters
+## Required parameters
 
 * `--start-version`
 
@@ -209,7 +214,7 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
    * jira-servicedesk
 
 
-### Optional parameters
+## Optional parameters
 
 * `--concurrent-builds` (default: 1)
 
@@ -269,13 +274,13 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
   `post_push.sh` script in this repository. For more details on this
   script see the section below.
 
-### Post build/push image validation scripts
+## Post build/push image validation scripts
 
 As noted above, the release-manager will invoke certain scripts at the
 post-build and post-push phases. These default to the included ones, but can be
 overridden on the commandline:
 
-#### Post Build Hook
+### Post Build Hook
 
 This is invoked after the image is built but before it is pushed to the
 repository. Its purpose is to run any functional, acceptance or security tests
@@ -302,7 +307,7 @@ The default script will perform the following actions:
   functional testing script. Optionally, this script can be overridden via the
   environment variable `FUNCTEST_SCRIPT`.
 
-#### Post Push Hook
+### Post Push Hook
 
 This is invoked after the image is pushed to the repository. It's initial
 purpose is to enable ongoing security monitoring of published images.
@@ -315,7 +320,7 @@ The default script will perform the following actions:
 
 * Invokes the Snyk security scanner in [container monitoring mode](https://docs.snyk.io/products/snyk-container/snyk-cli-for-container-security).
 
-## Tagging
+# Tagging
 
 One of the primary features of this tool is tagging support. At build time, all relevant
 tags are calculated, and are added to a single image build. This ensures that there is
@@ -374,3 +379,18 @@ created:
 
 
 `--tag-suffixes` may be applied to both default and non-default release configurations.
+
+## Versioning
+
+As the Docker images can change over time we should ideally add additional
+versioning to them. Currently we do not do this, and instead recommend that
+image hashes are used in production. There is an internal proposal to add
+versioning (for Atlassians: `Docker image versioning methodology options` in the
+DCD space), but this has not been actioned yet. If added it would be added to
+the tagging logic of this repository.
+
+# Manual runs
+
+If necessary, the builds can be triggered manually via Bitbucket Pipelines. See
+the `Run pipeline` button in the `Pipelines` section of each application Docker
+repository. This is also were the periodic runs are configured.
