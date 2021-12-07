@@ -117,9 +117,18 @@ pipeline does the following:
 This means that changes to the individual Docker repositories are propogated to
 the published images.
 
-## Batching runs
+## Batching builds
 
-
+As the rebuilding and functional-testing of all current product versions can be
+slow the script has the ability to run builds in batches of versions (similar to
+paging). This is done via the `--jobs-total` and `--jobs-offset` flags, which
+divides up the available versions (as returned from the Marketplace API) and
+runs only a chunk of them. This is intended to be used in conjunction with
+Bitbucket Pipelines [parallel steps
+feature](https://support.atlassian.com/bitbucket-cloud/docs/set-up-or-run-parallel-steps/);
+the application repositories use a template to generate the parallel steps. See
+the repositories for details (e.g. [the Jira
+bitbucket-pipelines.yml.j2](https://bitbucket.org/atlassian-docker/docker-atlassian-jira/src/master/bitbucket-pipelines.yml.j2)).
 
 # Running the build script
 
