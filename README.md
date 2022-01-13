@@ -341,10 +341,11 @@ The default script will perform the following actions:
     with:
     * Snyk personal token can be found in your Snyk account's Account Settings > General > API Token
     * Snyk-organization-id can be found in your Snyk Settings > General > Organization ID
-    * Regex tag is some tag name with regular expression
+    * Regex tag is some tag name with regular expression: `ubuntu` to find tags containing the word jdk 8, 
+    `^ubuntu$` to find tags named exactly ubuntu.
     * [Optional] Project value can be one of these: `bitbucket`, `bitbucket-server`, `confluence`, `confluence-server`, `crowd`,
     `jira`, `jira-core`, `jira-software`, `jira-servicemanagement`, `jira-servicedesk`, `bamboo`, `bamboo-server`, 
-    `bamboo-agent-base`. If not provided, the script will untag all projects.
+    `bamboo-agent-base`. If not provided, the script will untag all projects in the above list.
 
 # Tagging
 
