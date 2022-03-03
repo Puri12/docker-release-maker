@@ -64,7 +64,7 @@ class TargetRepo:
 
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
-    r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
+    r = requests.get(f'https://docker-public.packages.atlassian.com/v2/atlassian/{repo}/tags/list')
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
