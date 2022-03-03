@@ -8,15 +8,15 @@ pipelines:
           services:
             - docker
           script:
-            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            - docker build -t atlassian/docker-release-maker:latest .
-            - docker push atlassian/docker-release-maker:latest
+            - echo ${DOCKER_PASSWORD} | docker login docker-public.packages.atlassian.com --username ${DOCKER_USERNAME} --password-stdin
+            - docker build -t docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest .
+            - docker push docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
-            - npx snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container test docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container monitor docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest --severity-threshold=high
 
     '**':
       - step:
