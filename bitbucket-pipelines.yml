@@ -8,7 +8,7 @@ pipelines:
           services:
             - docker
           script:
-            - echo ${DOCKER_PASSWORD} | docker login docker-public.packages.atlassian.com --username ${DOCKER_USERNAME} --password-stdin
+            - echo ${DOCKER_BOT_PASSWORD} | docker login docker-public.packages.atlassian.com --username ${DOCKER_BOT_USERNAME} --password-stdin
             - docker build -t docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest .
             - docker push docker-public.packages.atlassian.com/atlassian/docker-release-maker:latest
 
@@ -29,7 +29,7 @@ pipelines:
             - ./hadolint Dockerfile
 
             - docker build -t docker-release-maker:local .
-            - docker run --rm docker-release-maker:local py.test
+            - docker run -e DOCKER_BOT_USERNAME -e DOCKER_BOT_PASSWORD  --rm docker-release-maker:local py.test
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk

@@ -5,6 +5,7 @@ import json
 import logging
 import re
 import time
+from urllib.request import HTTPBasicAuthHandler
 
 import docker
 import requests
@@ -64,7 +65,7 @@ class TargetRepo:
 
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
-    r = requests.get(f'https://docker-public.packages.atlassian.com/v2/atlassian/{repo}/tags/list')
+    r = requests.get(f'https://docker-public.packages.atlassian.com/v2/atlassian/{repo}/tags/list',auth=HTTPBasicAuthHandler(os.environ['DOCKER_BOT_USERNAME'], os.environ['DOCKER_BOT_PASSWORD']))
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
