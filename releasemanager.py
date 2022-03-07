@@ -65,11 +65,13 @@ class TargetRepo:
 
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
-    r = requests.get(f'https://docker-public.packages.atlassian.com/v2/atlassian/{repo}/tags/list',auth=HTTPBasicAuthHandler(os.environ['DOCKER_BOT_USERNAME'], os.environ['DOCKER_BOT_PASSWORD']))
+    username = os.environ['DOCKER_BOT_USERNAME']
+    password = os.environ['DOCKER_BOT_PASSWORD']
+    r = requests.get(f'https://{username}:{password}@docker-public.packages.atlassian.com/v2/{repo}/tags/list')
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
-    tags = {t['name'] for t in tag_data}
+    tags = {t for t in tag_data["tags"]}
     return tags
 
 
