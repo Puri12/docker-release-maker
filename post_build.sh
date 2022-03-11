@@ -6,7 +6,7 @@
 #  * Perform linting of the Dockerfile(s)
 #  * Optionally, run functional tests if present.
 #
-#   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run] [<path-to-.snyk file>]
+#   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run] [<path-to-.snyk-file>]
 #
 # The release image flag defaults to false, the testing flag to true.
 
@@ -19,7 +19,7 @@ fi
 IMAGE=$1
 IS_RELEASE=${2:-false}
 RUN_FUNCTESTS=${3:-true}
-SNYK_FILE=${4:-'/usr/src/app/.snyk'} # Optional override for Snyk file
+SNYK_FILE=${4:-'.snyk'}
 
 
 echo "######## Dockerfile Linting ########"
