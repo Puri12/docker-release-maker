@@ -337,8 +337,8 @@ class ReleaseManager:
         logging.info(f"TAGS FOR {version} ARE {tags}")
         for tag in tags:
             for target in self.target_repos:
-                repo = target.repo
-                release = f'docker-public.packages.atlassian.com/{repo}:{tag}'
+                repo = f'docker-public.packages.atlassian.com/{target.repo}'
+                release = f'{repo}:{tag}'
 
                 logging.info(f'Tagging "{release}"')
                 image.tag(repo, tag=tag)
