@@ -13,6 +13,8 @@ import subprocess
 import sys
 import os
 
+class Registry:
+    DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
 
 class EnvironmentException(Exception):
     pass
@@ -67,7 +69,7 @@ def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     username = os.environ['DOCKER_BOT_USERNAME']
     password = os.environ['DOCKER_BOT_PASSWORD']
-    r = requests.get(f'https://{username}:{password}@docker-public.packages.atlassian.com/v2/{repo}/tags/list')
+    r = requests.get(f'https://{username}:{password}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
@@ -76,6 +78,7 @@ def existing_tags(repo):
 
 
 def get_targets(repos):
+    logging.info(f'Retrieving Docker tags for {repos}')
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
     return list(targets)
 
@@ -291,7 +294,6 @@ class ReleaseManager:
             try:
                 logging.info(f'Pushing tag "{release}"')
                 self.docker_cli.images.push(release)
-                self._run_post_push_hook(release)
             except requests.exceptions.ConnectionError as e:
                 if i > max_retries:
                     logging.error(f'Push failed for tag "{release}"')
@@ -331,9 +333,11 @@ class ReleaseManager:
         image = self._build_image(version)
 
         # script will terminated with error if the test failed
+        logging.info(f"#### Preparing the release {version}")
         self._run_post_build_hook(image, version)
 
         tags =  self.calculate_tags(version)
+        logging.info('##### Pushing the image tags')
         logging.info(f"TAGS FOR {version} ARE {tags}")
         for tag in tags:
             for target in self.target_repos:
