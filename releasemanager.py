@@ -305,7 +305,7 @@ class ReleaseManager:
                 break
 
 
-    def _build_image(self, version):
+    def _build_image(self, version, retry=True):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
@@ -319,13 +319,17 @@ class ReleaseManager:
             return image
 
         except docker.errors.BuildError as exc:
-            logging.error(
-                f'Build with args '
-                f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
-            )
-            for line in exc.build_log:
-                logging.error(f"Build Log: {line['stream'].strip()}")
-            raise exc
+            if not retry:
+                logging.error(
+                    f'Build with args '
+                    f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
+                )
+                for line in exc.build_log:
+                    logging.error(f"Build Log: {line['stream'].strip()}")
+                raise exc
+            logging.error(f'Build with args {buildargs_log_str} failed; retrying ...')
+            sys.sleep(30) # wait 30s before retrying
+            return self._build_image(version, retry=False)
 
     def _build_release(self, version):
         logging.info(f"#### Building release {version}")
