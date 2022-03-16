@@ -231,7 +231,7 @@ class ReleaseManager:
         self.eap_release_versions = [v for v in self.eap_versions
                                  if Version(v) < self.end_version]
 
-        self.max_build_retries = 3
+        self.max_retries = 5
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
@@ -287,25 +287,25 @@ class ReleaseManager:
                 executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
-    def _push_release(self, release):
+    def _push_release(self, release, retry=0):
         if not self.push_docker:
             logging.info(f'Skipping push of tag "{release}"')
             return
 
-        max_retries = 5
-        for i in range(1, max_retries+1):
-            try:
-                logging.info(f'Pushing tag "{release}"')
-                self.docker_cli.images.push(release)
-            except requests.exceptions.ConnectionError as e:
-                if i > max_retries:
-                    logging.error(f'Push failed for tag "{release}"')
-                    raise e
-                logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
-                time.sleep(i)
-            else:
-                logging.info(f'Pushing tag "{release}" succeeded!')
-                break
+        try:
+            logging.info(f'Pushing tag "{release}"')
+            self.docker_cli.images.push(release)
+        except requests.exceptions.ConnectionError as e:
+            if retry > self.max_retries:
+                logging.error(f'Push failed for tag "{release}"')
+                raise e
+            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry}s ...')
+            time.sleep(retry+1)
+        else:
+            logging.info(f'Pushing tag "{release}" succeeded!')
+            return
+        # retry push in case of error
+        self._push_release(release, retry + 1)
 
 
     def _build_image(self, version, retry=0):
