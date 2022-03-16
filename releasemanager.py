@@ -103,6 +103,7 @@ def mac_versions(product_key):
         page += 1
         params = {}
     logging.info(f'Found {len(versions)} versions')
+    logging.debug(f'List of all versions from marketplace: {sorted(list(versions), reverse=True)}')
     return sorted(list(versions), reverse=True)
 
 
@@ -230,6 +231,8 @@ class ReleaseManager:
         self.eap_release_versions = [v for v in self.eap_versions
                                  if Version(v) < self.end_version]
 
+        self.max_build_retries = 3
+
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
             self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
@@ -305,7 +308,7 @@ class ReleaseManager:
                 break
 
 
-    def _build_image(self, version, retry=True):
+    def _build_image(self, version, retry=0):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
@@ -319,7 +322,7 @@ class ReleaseManager:
             return image
 
         except docker.errors.BuildError as exc:
-            if not retry:
+            if retry < self.max_build_retries:
                 logging.error(
                     f'Build with args '
                     f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
@@ -328,8 +331,8 @@ class ReleaseManager:
                     logging.error(f"Build Log: {line['stream'].strip()}")
                 raise exc
         logging.warning(f'Build with args {buildargs_log_str} failed; retrying in 30 seconds...')
-        time.sleep(30) # wait 30s before retrying one more time
-        return self._build_image(version, retry=False)
+        time.sleep(30) # wait 30s before retrying build after failure
+        return self._build_image(version, retry=retry+1)
 
     def _build_release(self, version):
         logging.info(f"#### Building release {version}")
