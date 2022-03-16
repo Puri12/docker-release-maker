@@ -327,9 +327,9 @@ class ReleaseManager:
                 for line in exc.build_log:
                     logging.error(f"Build Log: {line['stream'].strip()}")
                 raise exc
-            logging.error(f'Build with args {buildargs_log_str} failed; retrying ...')
-            sys.sleep(30) # wait 30s before retrying
-            return self._build_image(version, retry=False)
+        logging.warning(f'Build with args {buildargs_log_str} failed; retrying in 30 seconds...')
+        sys.sleep(30) # wait 30s before retrying one more time
+        return self._build_image(version, retry=False)
 
     def _build_release(self, version):
         logging.info(f"#### Building release {version}")
