@@ -11,6 +11,7 @@ RUN apk upgrade --no-cache \
     && pip install --no-cache-dir --upgrade pip \
     && pip install --no-cache-dir -r requirements.txt \
     && pip install --no-cache-dir docker-compose==1.23.2 \
+    && pip install --no-cache-dir MarkupSafe==2.0.1 \
     && npm install -g snyk
 
 ARG HADOLINT_VERSION=2.1.0

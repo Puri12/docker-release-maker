@@ -9,9 +9,12 @@ import time
 import docker
 import requests
 import subprocess
-import sys
 import os
 
+class Registry:
+    DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
+    USERNAME = os.environ['DOCKER_BOT_USERNAME']
+    PASSWORD = os.environ['DOCKER_BOT_PASSWORD']
 
 class EnvironmentException(Exception):
     pass
@@ -64,15 +67,16 @@ class TargetRepo:
 
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
-    r = requests.get(f'https://index.docker.io/v1/repositories/{repo}/tags')
+    r = requests.get(f'https://{Registry.USERNAME}:{Registry.PASSWORD}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
-    tags = {t['name'] for t in tag_data}
+    tags = {t for t in tag_data["tags"]}
     return tags
 
 
 def get_targets(repos):
+    logging.info(f'Retrieving Docker tags for {repos}')
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
     return list(targets)
 
@@ -97,6 +101,7 @@ def mac_versions(product_key):
         page += 1
         params = {}
     logging.info(f'Found {len(versions)} versions')
+    logging.debug(f'List of all versions from marketplace: {sorted(list(versions), reverse=True)}')
     return sorted(list(versions), reverse=True)
 
 
@@ -224,6 +229,8 @@ class ReleaseManager:
         self.eap_release_versions = [v for v in self.eap_versions
                                  if Version(v) < self.end_version]
 
+        self.max_retries = 5
+
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
             self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
@@ -278,29 +285,28 @@ class ReleaseManager:
                 executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
-    def _push_release(self, release):
+    def _push_release(self, release, retry=0):
         if not self.push_docker:
             logging.info(f'Skipping push of tag "{release}"')
             return
 
-        max_retries = 5
-        for i in range(1, max_retries+1):
-            try:
-                logging.info(f'Pushing tag "{release}"')
-                self.docker_cli.images.push(release)
-                self._run_post_push_hook(release)
-            except requests.exceptions.ConnectionError as e:
-                if i > max_retries:
-                    logging.error(f'Push failed for tag "{release}"')
-                    raise e
-                logging.warning(f'Pushing tag "{release}" failed; retrying in {i}s ...')
-                time.sleep(i)
-            else:
-                logging.info(f'Pushing tag "{release}" succeeded!')
-                break
+        try:
+            logging.info(f'Pushing tag "{release}"')
+            self.docker_cli.images.push(release)
+        except requests.exceptions.ConnectionError as e:
+            if retry > self.max_retries:
+                logging.error(f'Push failed for tag "{release}"')
+                raise e
+            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry+1}s ...')
+            time.sleep(retry+1)
+        else:
+            logging.info(f'Pushing tag "{release}" succeeded!')
+            return
+        # retry push in case of error
+        self._push_release(release, retry + 1)
 
 
-    def _build_image(self, version):
+    def _build_image(self, version, retry=0):
         buildargs = {self.dockerfile_version_arg: version}
         if self.dockerfile_buildargs is not None:
             buildargs.update(parse_buildargs(self.dockerfile_buildargs))
@@ -314,13 +320,17 @@ class ReleaseManager:
             return image
 
         except docker.errors.BuildError as exc:
-            logging.error(
-                f'Build with args '
-                f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
-            )
-            for line in exc.build_log:
-                logging.error(f"Build Log: {line['stream'].strip()}")
-            raise exc
+            if retry < self.max_retries:
+                logging.error(
+                    f'Build with args '
+                    f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
+                )
+                for line in exc.build_log:
+                    logging.error(f"Build Log: {line['stream'].strip()}")
+                raise exc
+        logging.warning(f'Build with args {buildargs_log_str} failed; retrying in 30 seconds...')
+        time.sleep(30) # wait 30s before retrying build after failure
+        return self._build_image(version, retry=retry+1)
 
     def _build_release(self, version):
         logging.info(f"#### Building release {version}")
@@ -328,13 +338,15 @@ class ReleaseManager:
         image = self._build_image(version)
 
         # script will terminated with error if the test failed
+        logging.info(f"#### Preparing the release {version}")
         self._run_post_build_hook(image, version)
 
         tags =  self.calculate_tags(version)
+        logging.info('##### Pushing the image tags')
         logging.info(f"TAGS FOR {version} ARE {tags}")
         for tag in tags:
             for target in self.target_repos:
-                repo = target.repo
+                repo = f'docker-public.packages.atlassian.com/{target.repo}'
                 release = f'{repo}:{tag}'
 
                 logging.info(f'Tagging "{release}"')

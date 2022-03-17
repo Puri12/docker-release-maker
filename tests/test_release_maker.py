@@ -93,9 +93,9 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '6', '6.7', '6.7.8',
-        '6-jdk8', '6.7-jdk8', '6.7.8-jdk8',
+        '6-jdk11', '6.7-jdk11', '6.7.8-jdk11',
         '6-ubuntu', '6.7-ubuntu', '6.7.8-ubuntu',
-        'latest', 'jdk8', 'ubuntu',
+        'latest', 'jdk11', 'ubuntu',
     }
     assert expected_tags == tags
 
@@ -103,7 +103,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '6.7.7',
-        '6.7.7-jdk8',
+        '6.7.7-jdk11',
         '6.7.7-ubuntu',
     }
     assert expected_tags == tags
@@ -112,7 +112,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '5', '5.6', '5.6.7',
-        '5-jdk8', '5.6-jdk8', '5.6.7-jdk8',
+        '5-jdk11', '5.6-jdk11', '5.6.7-jdk11',
         '5-ubuntu', '5.6-ubuntu', '5.6.7-ubuntu',
     }
     assert expected_tags == tags
@@ -121,7 +121,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
         '5.4', '5.4.3',
-        '5.4-jdk8', '5.4.3-jdk8',
+        '5.4-jdk11', '5.4.3-jdk11',
         '5.4-ubuntu', '5.4.3-ubuntu',
     }
     assert expected_tags == tags
@@ -132,16 +132,16 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     test_tag = '6.7.8'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '6-jdk8', '6.7-jdk8', '6.7.8-jdk8',
+        '6-jdk11', '6.7-jdk11', '6.7.8-jdk11',
         '6-ubuntu', '6.7-ubuntu', '6.7.8-ubuntu',
-        'jdk8', 'ubuntu'
+        'jdk11', 'ubuntu'
     }
     assert expected_tags == tags
 
     test_tag = '6.7.7'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '6.7.7-jdk8',
+        '6.7.7-jdk11',
         '6.7.7-ubuntu',
     }
     assert expected_tags == tags
@@ -149,7 +149,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     test_tag = '5.6.7'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '5-jdk8', '5.6-jdk8', '5.6.7-jdk8',
+        '5-jdk11', '5.6-jdk11', '5.6.7-jdk11',
         '5-ubuntu', '5.6-ubuntu', '5.6.7-ubuntu',
     }
     assert expected_tags == tags
@@ -157,7 +157,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
     test_tag = '5.4.3'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '5.4-jdk8', '5.4.3-jdk8',
+        '5.4-jdk11', '5.4.3-jdk11',
         '5.4-ubuntu', '5.4.3-ubuntu',
     }
     assert expected_tags == tags
@@ -171,13 +171,13 @@ def test_create_releases(mocked_docker, mocked_existing_tags, mocked_mac_version
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.4"',
+        f'{refapp["docker_repos"][0]}:6.5.4',
         f'{refapp["docker_repos"][0]}:6.7.8'
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:5.4.3"',
-        f'"{refapp["docker_repos"][0]}:5.6.7"',
-        f'"{refapp["docker_repos"][0]}:6.7.7"',
+        f'{refapp["docker_repos"][0]}:5.4.3',
+        f'{refapp["docker_repos"][0]}:5.6.7',
+        f'{refapp["docker_repos"][0]}:6.7.7',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -193,13 +193,13 @@ def test_update_releases(mocked_docker, mocked_existing_tags, mocked_mac_version
     rm = ReleaseManager(**refapp)
     rm.update_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.4"',
-        f'"{refapp["docker_repos"][0]}:6.7.7"',
-        f'"{refapp["docker_repos"][0]}:6.7.8"',
+        f'{refapp["docker_repos"][0]}:6.5.4',
+        f'{refapp["docker_repos"][0]}:6.7.7',
+        f'{refapp["docker_repos"][0]}:6.7.8',
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:5.4.3"',
-        f'"{refapp["docker_repos"][0]}:5.6.7"',
+        f'{refapp["docker_repos"][0]}:5.4.3',
+        f'{refapp["docker_repos"][0]}:5.6.7',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -215,11 +215,11 @@ def test_create_competing_releases(mocked_docker, mocked_existing_tags, mocked_m
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.4"',
-        f'"{refapp["docker_repos"][0]}:6.7.8"',
+        f'{refapp["docker_repos"][0]}:6.5.4',
+        f'{refapp["docker_repos"][0]}:6.7.8',
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.5"',
+        f'{refapp["docker_repos"][0]}:6.5.5',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -230,13 +230,13 @@ def test_create_competing_releases(mocked_docker, mocked_existing_tags, mocked_m
     rm = ReleaseManager(**refapp)
     rm.create_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.7.7-jdk8"',
-        f'"{refapp["docker_repos"][0]}:6.7.8-jdk8"',
-        f'"{refapp["docker_repos"][0]}:6.5.4-ubuntu"',
-        f'"{refapp["docker_repos"][0]}:6.5.4-jdk8"',
+        f'{refapp["docker_repos"][0]}:6.7.7-jdk11',
+        f'{refapp["docker_repos"][0]}:6.7.8-jdk11',
+        f'{refapp["docker_repos"][0]}:6.5.4-ubuntu',
+        f'{refapp["docker_repos"][0]}:6.5.4-jdk11',
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:5.4.3"',
+        f'{refapp["docker_repos"][0]}:5.4.3',
         f'"{refapp["docker_repos"][0]}:5.6.7"',
         f'"{refapp["docker_repos"][0]}:6.7.7"',
     }
@@ -378,13 +378,13 @@ def test_make_release_create(mocked_docker, mocked_existing_tags, mocked_mac_ver
     mr.main(args)
 
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.4"',
+        f'{refapp["docker_repos"][0]}:6.5.4',
         f'{refapp["docker_repos"][0]}:6.7.8'
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:5.4.3"',
-        f'"{refapp["docker_repos"][0]}:5.6.7"',
-        f'"{refapp["docker_repos"][0]}:6.7.7"',
+        f'{refapp["docker_repos"][0]}:5.4.3',
+        f'{refapp["docker_repos"][0]}:5.6.7',
+        f'{refapp["docker_repos"][0]}:6.7.7',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -408,13 +408,13 @@ def test_make_release_update(mocked_docker, mocked_existing_tags, mocked_mac_ver
     mr.main(args)
 
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.5.4"',
-        f'"{refapp["docker_repos"][0]}:6.7.7"',
-        f'"{refapp["docker_repos"][0]}:6.7.8"',
+        f'{refapp["docker_repos"][0]}:6.5.4',
+        f'{refapp["docker_repos"][0]}:6.7.7',
+        f'{refapp["docker_repos"][0]}:6.7.8',
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:5.4.3"',
-        f'"{refapp["docker_repos"][0]}:5.6.7"',
+        f'{refapp["docker_repos"][0]}:5.4.3',
+        f'{refapp["docker_repos"][0]}:5.6.7',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -430,12 +430,12 @@ def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_ver
     rm = ReleaseManager(**refapp)
     rm.create_eap_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-m55"',
+        f'{refapp["docker_repos"][0]}:6.0.0-m55',
         f'{refapp["docker_repos"][0]}:6.0.0-RC2',
         'eap'
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-RC1"',
+        f'{refapp["docker_repos"][0]}:6.0.0-RC1',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -451,12 +451,12 @@ def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_ver
     rm = ReleaseManager(**refapp)
     rm.create_eap_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-m55"',
+        f'{refapp["docker_repos"][0]}:6.0.0-m55',
         f'{refapp["docker_repos"][0]}:6.0.0-RC2',
         'eap'
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-RC1"',
+        f'{refapp["docker_repos"][0]}:6.0.0-RC1',
     }
     for tag in expected_tags:
         assert tag in caplog.text
@@ -473,15 +473,15 @@ def test_calculate_eap_tags(mocked_docker, mocked_existing_tags, mocked_eap_vers
     test_tag = '6.0.0-RC1'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '6.0.0-RC1', '6.0.0-RC1-jdk8', '6.0.0-RC1-ubuntu',
+        '6.0.0-RC1', '6.0.0-RC1-jdk11', '6.0.0-RC1-ubuntu',
     }
     assert expected_tags == tags
 
     test_tag = '6.0.0-RC2'
     tags = rm.calculate_tags(test_tag)
     expected_tags = {
-        '6.0.0-RC2', '6.0.0-RC2-jdk8', '6.0.0-RC2-ubuntu',
-        'eap', 'eap-jdk8', 'eap-ubuntu',
+        '6.0.0-RC2', '6.0.0-RC2-jdk11', '6.0.0-RC2-ubuntu',
+        'eap', 'eap-jdk11', 'eap-ubuntu',
     }
     assert expected_tags == tags
 
@@ -496,12 +496,12 @@ def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_vers
     rm = ReleaseManager(**refapp)
     rm.create_eap_releases()
     expected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-m55"',
-        f'{refapp["docker_repos"][0]}:6.0.0-RC2'
+        f'{refapp["docker_repos"][0]}:6.0.0-RC2',
+        f'{refapp["docker_repos"][0]}:6.0.0-RC2-jdk11'
     }
     unexpected_tags = {
-        f'"{refapp["docker_repos"][0]}:6.0.0-RC1"',
-        f'"{refapp["docker_repos"][0]}:7.0.0-RC2"',
+        f'{refapp["docker_repos"][0]}:6.0.0-RC1',
+        f'{refapp["docker_repos"][0]}:7.0.0-RC2',
     }
     for tag in expected_tags:
         assert tag in caplog.text
