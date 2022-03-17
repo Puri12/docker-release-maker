@@ -320,7 +320,7 @@ class ReleaseManager:
             return image
 
         except docker.errors.BuildError as exc:
-            if retry < self.max_build_retries:
+            if retry < self.max_retries:
                 logging.error(
                     f'Build with args '
                     f'{self.dockerfile_version_arg}={version} failed:\n\t{exc}'
