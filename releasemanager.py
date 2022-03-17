@@ -12,7 +12,7 @@ import subprocess
 import os
 
 class Registry:
-    DOCKER_REGISTRY = os.environ['DOCKER_REGISTRY']
+    DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
     USERNAME = os.environ['DOCKER_BOT_USERNAME']
     PASSWORD = os.environ['DOCKER_BOT_PASSWORD']
 
@@ -297,7 +297,7 @@ class ReleaseManager:
             if retry > self.max_retries:
                 logging.error(f'Push failed for tag "{release}"')
                 raise e
-            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry}s ...')
+            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry+1}s ...')
             time.sleep(retry+1)
         else:
             logging.info(f'Pushing tag "{release}" succeeded!')
