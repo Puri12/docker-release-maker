@@ -12,7 +12,7 @@ import subprocess
 import os
 
 class Registry:
-    DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
+    DOCKER_REGISTRY = os.environ['DOCKER_REGISTRY']
     USERNAME = os.environ['DOCKER_BOT_USERNAME']
     PASSWORD = os.environ['DOCKER_BOT_PASSWORD']
 
