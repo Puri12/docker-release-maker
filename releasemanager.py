@@ -5,16 +5,16 @@ import json
 import logging
 import re
 import time
-from urllib.request import HTTPBasicAuthHandler
 
 import docker
 import requests
 import subprocess
-import sys
 import os
 
 class Registry:
     DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
+    USERNAME = os.environ['DOCKER_BOT_USERNAME']
+    PASSWORD = os.environ['DOCKER_BOT_PASSWORD']
 
 class EnvironmentException(Exception):
     pass
@@ -67,9 +67,7 @@ class TargetRepo:
 
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
-    username = os.environ['DOCKER_BOT_USERNAME']
-    password = os.environ['DOCKER_BOT_PASSWORD']
-    r = requests.get(f'https://{username}:{password}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
+    r = requests.get(f'https://{Registry.USERNAME}:{Registry.PASSWORD}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
     if r.status_code == requests.codes.not_found:
         return set()
     tag_data = r.json()
