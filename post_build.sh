@@ -6,7 +6,7 @@
 #  * Perform linting of the Dockerfile(s)
 #  * Optionally, run functional tests if present.
 #
-#   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run]
+#   Usage: <path-to>/post_build.sh <IMAGE-ID-OR-HASH>  ['true' if a release image] ['true' if tests should be run] [<path-to-.snyk-file>]
 #
 # The release image flag defaults to false, the testing flag to true.
 
@@ -19,6 +19,7 @@ fi
 IMAGE=$1
 IS_RELEASE=${2:-false}
 RUN_FUNCTESTS=${3:-true}
+SNYK_FILE=${4:-'.snyk'}
 
 
 echo "######## Dockerfile Linting ########"
@@ -43,7 +44,7 @@ snyk auth -d $SNYK_TOKEN
 
 echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 echo "Performing security scan from the directory [`pwd`]"
-SNYK_FILE=.snyk
+
 if [ -f "$SNYK_FILE" ]; then
   echo "Performing security scan with .snyk policy file"
   snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD --policy-path=$SNYK_FILE

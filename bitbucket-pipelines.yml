@@ -8,15 +8,15 @@ pipelines:
           services:
             - docker
           script:
-            - echo ${DOCKER_PASSWORD} | docker login --username ${DOCKER_USERNAME} --password-stdin
-            - docker build -t atlassian/docker-release-maker:latest .
-            - docker push atlassian/docker-release-maker:latest
+            - echo ${DOCKER_BOT_PASSWORD} | docker login ${DOCKER_REGISTRY} --username ${DOCKER_BOT_USERNAME} --password-stdin
+            - docker build -t ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest .
+            - docker push ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test atlassian/docker-release-maker:latest --severity-threshold=high
-            - npx snyk container monitor atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container test ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container monitor ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high
 
     '**':
       - step:
@@ -29,7 +29,7 @@ pipelines:
             - ./hadolint Dockerfile
 
             - docker build -t docker-release-maker:local .
-            - docker run --rm docker-release-maker:local py.test
+            - docker run -e DOCKER_BOT_USERNAME -e DOCKER_BOT_PASSWORD  --rm docker-release-maker:local py.test
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
