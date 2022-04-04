@@ -328,6 +328,24 @@ The script takes the following arguments (provided by the release-manager):
 The default script will perform the following actions:
 
 * Invokes the Snyk security scanner in [container monitoring mode](https://docs.snyk.io/products/snyk-container/snyk-cli-for-container-security).
+    
+    We are committed to fix critical and high severity security vulnerabilities of our docker images detected by Snyk. 
+    They are reported in Snyk projects page with TAGS `team-name:dc-deployment`.
+    
+    Once docker images come to their end of life, run `snyk-untag.sh` script to untag them so their vulnerabilities
+    no longer show up in our filter: 
+    
+    `snyk-untag.sh --token=<snyk-personal-token> --org-id=<snyk-organization-id> --regex-tag=<regex-tag> 
+    [--project=<confluence|bitbucket..>]`
+    
+    with:
+    * Snyk personal token can be found in your Snyk account's Account Settings > General > API Token
+    * Snyk-organization-id can be found in your Snyk Settings > General > Organization ID
+    * Regex tag is some tag name with regular expression: `ubuntu` to find tags _containing_ the word ubuntu, 
+    `^ubuntu$` to find tags _named exactly_ ubuntu.
+    * [Optional] Project value can be one of these: `bitbucket`, `bitbucket-server`, `confluence`, `confluence-server`, `crowd`,
+    `jira`, `jira-core`, `jira-software`, `jira-servicemanagement`, `jira-servicedesk`, `bamboo`, `bamboo-server`, 
+    `bamboo-agent-base`. If not provided, the script will untag all projects in the above list.
 
 # Tagging
 
