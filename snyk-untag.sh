@@ -3,6 +3,9 @@
 # This script will untag EOL Snyk project so their vulnerabilities will not show up in DCD filter
 #
 #   Usage: <path-to>/snyk-untag.sh --token=<snyk-personal-token> --org-id=<snyk-organization-id> --regex-tag=<version|openjdk> [--project=<confluence-server|bitbucket-server..>]
+#
+#   Example: To untag confluence:ubuntu and confluence-server:ubuntu projects, run:
+#   ./snyk-untag.sh --token=<snyk-personal-token> --org-id=<snyk-organization-id> --regex-tag=^ubuntu$ --project=confluence
 
 set -e
 
@@ -65,7 +68,7 @@ else
     then
         echo "Checking all jira family projects: jira-core, jira-software, jira-servicemanagement and jira-servicedesk"
         PROJECTS=("jira-core" "jira-software" "jira-servicemanagement" "jira-servicedesk")
-    elif [[ "$PROJECT" == *"bamboo"* ]];
+    elif [[ "$PROJECT" == "bamboo"  ]] || [[ "$PROJECT" == "bamboo-server"  ]];
     then
         echo "Checking both bamboo and bamboo-server projects"
         PROJECTS=("bamboo" "bamboo-server")
@@ -86,13 +89,19 @@ fi
 
 for PROJECT in "${PROJECTS[@]}";
 do
-    TAGS="$(echo "$(curl -s https://registry.hub.docker.com/v1/repositories/atlassian/$PROJECT/tags | jq -r '.[].name' | grep $REGEX_TAG)")"
+    if [[ ! -z "$REGEX_TAG" ]]
+    then
+        TAGS="$(echo "$(curl -s https://registry.hub.docker.com/v1/repositories/atlassian/$PROJECT/tags | jq -r '.[].name' | grep $REGEX_TAG)")"
+    else
+        TAGS="$(echo "$(curl -s https://registry.hub.docker.com/v1/repositories/atlassian/$PROJECT/tags | jq -r '.[].name')")"
+    fi
+
 
     if [[ ! -z "$TAGS" ]]
     then
         for TAG in $TAGS
         do
-            SNYK_PROJECTS+=("atlassian/$PROJECT:$TAG")
+            SNYK_PROJECTS+=("docker-public.packages.atlassian.com/atlassian/$PROJECT:$TAG")
         done
     fi
 done
