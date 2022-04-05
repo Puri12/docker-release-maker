@@ -299,11 +299,12 @@ class ReleaseManager:
                 raise e
             logging.warning(f'Pushing tag "{release}" failed; retrying in {retry+1}s ...')
             time.sleep(retry+1)
+            # retry push in case of error
+            self._push_release(release, retry + 1)
         else:
             logging.info(f'Pushing tag "{release}" succeeded!')
+            self._run_post_push_hook(release)
             return
-        # retry push in case of error
-        self._push_release(release, retry + 1)
 
 
     def _build_image(self, version, retry=0):
