@@ -7,7 +7,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import eap_versions, existing_tags, mac_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
+from releasemanager import eap_versions, existing_tags, mac_versions, ReleaseManager, str2bool, Version, latest_minor, batch_of_jobs
 
 class Dict2Class(object):
     def __init__(self, my_dict):
@@ -61,37 +61,37 @@ def test_latest_minor():
 
 def test_slice_job_short():
     versions = ['8.16.0-RC02', '8.16.0-RC01', '8.16.0-EAP03', '8.16.0-EAP02', '8.16.0-EAP01']
-    assert batch_job(versions, 0, 12) == [versions[0]]
-    assert batch_job(versions, 1, 12) == [versions[1]]
-    assert batch_job(versions, 2, 12) == [versions[2]]
-    assert batch_job(versions, 3, 12) == [versions[3]]
-    assert batch_job(versions, 4, 12) == [versions[4]]
+    assert batch_of_jobs(versions, 0, 12) == [versions[0]]
+    assert batch_of_jobs(versions, 1, 12) == [versions[1]]
+    assert batch_of_jobs(versions, 2, 12) == [versions[2]]
+    assert batch_of_jobs(versions, 3, 12) == [versions[3]]
+    assert batch_of_jobs(versions, 4, 12) == [versions[4]]
 
-    assert batch_job(versions, 9, 12) == []
-    assert batch_job(versions, 5, 12) == []
-    assert batch_job(versions, 11, 12) == []
+    assert batch_of_jobs(versions, 9, 12) == []
+    assert batch_of_jobs(versions, 5, 12) == []
+    assert batch_of_jobs(versions, 11, 12) == []
 
 def test_slice_job_long():
      versions = [f"3.2.{i}" for i in range(68)]
-     assert batch_job(versions, 0, 12) == versions[0:6]
-     assert batch_job(versions, 1, 12) == versions[6:12]
-     assert batch_job(versions, 11, 12) == versions[63:68]
+     assert batch_of_jobs(versions, 0, 12) == versions[0:6]
+     assert batch_of_jobs(versions, 1, 12) == versions[6:12]
+     assert batch_of_jobs(versions, 11, 12) == versions[63:68]
 
      processed = []
      for off in range(12):
-         processed += batch_job(versions, off, 12)
+         processed += batch_of_jobs(versions, off, 12)
      assert processed == versions
 
 def test_slice_includes_all_versions():
     versions = ['8.1.4', '8.1.3', '8.1.2', '8.1.1', '8.0.6', '8.0.5', '8.0.4', '8.0.3', '8.0.2', '8.0.1', '8.0.0']
-    assert batch_job(versions, 0, 8) == versions[0:2]
-    assert batch_job(versions, 1, 8) == versions[2:4]
-    assert batch_job(versions, 2, 8) == versions[4:6]
-    assert batch_job(versions, 3, 8) == versions[6:7]
-    assert batch_job(versions, 4, 8) == versions[7:8]
-    assert batch_job(versions, 5, 8) == versions[8:9]
-    assert batch_job(versions, 6, 8) == versions[9:10]
-    assert batch_job(versions, 7, 8) == versions[10:11]
+    assert batch_of_jobs(versions, 0, 8) == versions[0:2]
+    assert batch_of_jobs(versions, 1, 8) == versions[2:4]
+    assert batch_of_jobs(versions, 2, 8) == versions[4:6]
+    assert batch_of_jobs(versions, 3, 8) == versions[6:7]
+    assert batch_of_jobs(versions, 4, 8) == versions[7:8]
+    assert batch_of_jobs(versions, 5, 8) == versions[8:9]
+    assert batch_of_jobs(versions, 6, 8) == versions[9:10]
+    assert batch_of_jobs(versions, 7, 8) == versions[10:11]
 
 
 @mock.patch('releasemanager.docker.from_env')
