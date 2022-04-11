@@ -170,23 +170,23 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def batch_of_jobs(product_versions, current_batch, batches_to_create):
+def batch_of_versions(product_versions, current_batch, batches_to_create):
     if len(product_versions) == 0:
         return product_versions
 
     batches_to_create = min(batches_to_create, len(product_versions))
-    jobs_per_batch = int(len(product_versions) / batches_to_create)
+    versions_per_batch = int(len(product_versions) / batches_to_create)
 
-    # Determine if there will be any versions/jobs that won't be assigned
+    # Determine if there will be any versions that won't be assigned
     # to a batch.
-    orphaned_job_count = len(product_versions) % batches_to_create
+    orphaned_version_count = len(product_versions) % batches_to_create
 
-    # Determine if we need to allocate space for an orphaned version/job
-    space_for_orphan_job = 1 if allocate_space(current_batch, orphaned_job_count) else 0
+    # Determine if we need to allocate space for an orphaned version
+    space_for_orphaned_version = 1 if allocate_space(current_batch, orphaned_version_count) else 0
 
-    # Return a job/batch of product versions
-    start_of_batch = current_batch * jobs_per_batch + min(current_batch, orphaned_job_count)
-    end_of_batch = start_of_batch + jobs_per_batch + space_for_orphan_job
+    # Return a batch of versions
+    start_of_batch = current_batch * versions_per_batch + min(current_batch, orphaned_version_count)
+    end_of_batch = start_of_batch + versions_per_batch + space_for_orphaned_version
     return product_versions[start_of_batch:end_of_batch]
 
 
@@ -248,8 +248,8 @@ class ReleaseManager:
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
-            self.release_versions = batch_of_jobs(self.release_versions, job_offset, jobs_total)
-            self.eap_release_versions = batch_of_jobs(self.eap_release_versions, job_offset, jobs_total)
+            self.release_versions = batch_of_versions(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = batch_of_versions(self.eap_release_versions, job_offset, jobs_total)
 
         logging.info(f'Will process release versions: {self.release_versions}')
         logging.info(f'Will process EAP versions: {self.eap_release_versions}')
