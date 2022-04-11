@@ -170,14 +170,29 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def slice_job(versions, offset, total):
-    if len(versions) == 0:
-        return versions
-    total = min(total, len(versions))
-    jsize = round(len(versions) / total)
-    start = offset * jsize
-    end = start + jsize
-    return versions[start:end]
+def batch_job(product_versions, job_number, jobs_to_create):
+    if len(product_versions) == 0:
+        return product_versions
+
+    jobs_to_create = min(jobs_to_create, len(product_versions))
+    jobs = int(len(product_versions) / jobs_to_create)
+
+    # Determine if there will be any versions that won't be assigned
+    # to a job.
+    orphaned_version_count = len(product_versions) % jobs_to_create
+
+    # Determine if we need to allocate space for an orphaned version
+    space_for_orphan = 1 if allocate_space(job_number, orphaned_version_count) else 0
+
+    # Return a job/batch of product versions
+    start_of_batch = job_number * jobs + min(job_number, orphaned_version_count)
+    end_of_batch = start_of_batch + jobs + space_for_orphan
+    return product_versions[start_of_batch:end_of_batch]
+
+
+def allocate_space(job_number, orphaned_version_count):
+    return job_number < orphaned_version_count
+
 
 def run_script(script, *args):
     if not os.path.exists(script):
@@ -233,8 +248,8 @@ class ReleaseManager:
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
-            self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
-            self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
+            self.release_versions = batch_job(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = batch_job(self.eap_release_versions, job_offset, jobs_total)
 
         logging.info(f'Will process release versions: {self.release_versions}')
         logging.info(f'Will process EAP versions: {self.eap_release_versions}')
