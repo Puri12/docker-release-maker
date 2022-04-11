@@ -190,8 +190,8 @@ def batch_of_versions(product_versions, current_batch, batches_to_create):
     return product_versions[start_of_batch:end_of_batch]
 
 
-def allocate_space(current_job, orphaned_version_count):
-    return current_job < orphaned_version_count
+def allocate_space(current_batch, orphaned_version_count):
+    return current_batch < orphaned_version_count
 
 
 def run_script(script, *args):
