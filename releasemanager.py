@@ -182,11 +182,11 @@ def batch_of_jobs(product_versions, current_batch, batches_to_create):
     orphaned_job_count = len(product_versions) % batches_to_create
 
     # Determine if we need to allocate space for an orphaned version/job
-    space_for_orphan = 1 if allocate_space(current_batch, orphaned_job_count) else 0
+    space_for_orphan_job = 1 if allocate_space(current_batch, orphaned_job_count) else 0
 
     # Return a job/batch of product versions
     start_of_batch = current_batch * jobs_per_batch + min(current_batch, orphaned_job_count)
-    end_of_batch = start_of_batch + jobs_per_batch + space_for_orphan
+    end_of_batch = start_of_batch + jobs_per_batch + space_for_orphan_job
     return product_versions[start_of_batch:end_of_batch]
 
 
