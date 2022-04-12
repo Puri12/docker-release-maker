@@ -170,14 +170,20 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def slice_job(versions, offset, total):
-    if len(versions) == 0:
-        return versions
-    total = min(total, len(versions))
-    jsize = round(len(versions) / total)
-    start = offset * jsize
-    end = start + jsize
-    return versions[start:end]
+# This method will split a list of product versions across a batch count.
+# For the given batch the corresponding list of product versions is
+# returned.
+def batch_job(product_versions, batch_count, batch):
+    if len(product_versions) == 0:
+        return product_versions
+    batch_count = min(batch_count, len(product_versions))
+    versions_per_batch = int(len(product_versions) / batch_count)
+    leftover = len(product_versions) % batch_count
+    extra_version = 1 if batch < leftover else 0
+    start = batch * versions_per_batch + min(batch, leftover)
+    end = start + versions_per_batch + extra_version
+    return product_versions[start:end]
+
 
 def run_script(script, *args):
     if not os.path.exists(script):
@@ -233,8 +239,8 @@ class ReleaseManager:
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
-            self.release_versions = slice_job(self.release_versions, job_offset, jobs_total)
-            self.eap_release_versions = slice_job(self.eap_release_versions, job_offset, jobs_total)
+            self.release_versions = batch_job(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = batch_job(self.eap_release_versions, job_offset, jobs_total)
 
         logging.info(f'Will process release versions: {self.release_versions}')
         logging.info(f'Will process EAP versions: {self.eap_release_versions}')
