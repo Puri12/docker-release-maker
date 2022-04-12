@@ -243,8 +243,8 @@ class ReleaseManager:
 
         # If we're running batched just take 'our share'.
         if job_offset is not None and jobs_total is not None:
-            self.release_versions = batch_of_versions(self.release_versions, job_offset, jobs_total)
-            self.eap_release_versions = batch_of_versions(self.eap_release_versions, job_offset, jobs_total)
+            self.release_versions = batch_job(self.release_versions, job_offset, jobs_total)
+            self.eap_release_versions = batch_job(self.eap_release_versions, job_offset, jobs_total)
 
         logging.info(f'Will process release versions: {self.release_versions}')
         logging.info(f'Will process EAP versions: {self.eap_release_versions}')
