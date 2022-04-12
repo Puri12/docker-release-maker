@@ -185,10 +185,6 @@ def batch_job(product_versions, batch_count, batch):
     return product_versions[start:end]
 
 
-def allocate_space(current_batch, orphaned_version_count):
-    return current_batch < orphaned_version_count
-
-
 def run_script(script, *args):
     if not os.path.exists(script):
         msg = f"Script '{script}' does not exist; failing!"
