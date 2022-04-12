@@ -170,24 +170,19 @@ def parse_buildargs(buildargs):
     return dict(item.split("=") for item in buildargs.split(","))
 
 
-def batch_of_versions(product_versions, current_batch, batches_to_create):
+# This method will split a list of product versions across a batch count.
+# For the given batch the corresponding list of product versions is
+# returned.
+def batch_job(product_versions, batch_count, batch):
     if len(product_versions) == 0:
         return product_versions
-
-    batches_to_create = min(batches_to_create, len(product_versions))
-    versions_per_batch = int(len(product_versions) / batches_to_create)
-
-    # Determine if there will be any versions that won't be assigned
-    # to a batch.
-    orphaned_version_count = len(product_versions) % batches_to_create
-
-    # Determine if we need to allocate space for an orphaned version
-    space_for_orphaned_version = 1 if allocate_space(current_batch, orphaned_version_count) else 0
-
-    # Return a batch of versions
-    start_of_batch = current_batch * versions_per_batch + min(current_batch, orphaned_version_count)
-    end_of_batch = start_of_batch + versions_per_batch + space_for_orphaned_version
-    return product_versions[start_of_batch:end_of_batch]
+    batch_count = min(batch_count, len(product_versions))
+    versions_per_batch = int(len(product_versions) / batch_count)
+    leftover = len(product_versions) % batch_count
+    extra_version = 1 if batch < leftover else 0
+    start = batch * versions_per_batch + min(batch, leftover)
+    end = start + versions_per_batch + extra_version
+    return product_versions[start:end]
 
 
 def allocate_space(current_batch, orphaned_version_count):
