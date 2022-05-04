@@ -119,7 +119,9 @@ def eap_versions(product_key):
     if 'jira' in product_key:
         feed_key = 'jira'
         description_key = jira_product_key_mapper[product_key]
-        logging.info(f'Retrieving EAP versions for {product_key}')
+    elif product_key == 'bitbucket':
+        feed_key = 'stash'
+    logging.info(f'Retrieving EAP versions for {product_key}')
     r = requests.get(f'https://my.atlassian.com/download/feeds/eap/{feed_key}.json')
     data = json.loads(r.text[10:-1])
     versions = set()
