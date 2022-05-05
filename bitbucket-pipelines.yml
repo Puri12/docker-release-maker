@@ -29,7 +29,7 @@ pipelines:
             - ./hadolint Dockerfile
 
             - docker build -t docker-release-maker:local .
-            - docker run -e DOCKER_BOT_USERNAME -e DOCKER_BOT_PASSWORD  --rm docker-release-maker:local py.test
+            - docker run -e DOCKER_BOT_USERNAME -e DOCKER_BOT_PASSWORD  --rm docker-release-maker:local py.test -v
 
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
