@@ -19,3 +19,4 @@ build/
 env.json
 build-output/
 Pipfile
+\#*\#
