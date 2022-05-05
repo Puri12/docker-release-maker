@@ -231,11 +231,9 @@ class ReleaseManager:
         self.jobs_total = jobs_total
 
         self.mac_versions = mac_versions(mac_product_key)
-        self.eap_versions = eap_versions(mac_product_key)
         self.release_versions = [v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = [v for v in self.eap_versions
-                                 if Version(v) < self.end_version]
+        self.eap_release_versions = eap_versions(mac_product_key)
 
         self.max_retries = 5
 
@@ -406,7 +404,7 @@ class ReleaseManager:
         if latest_minor(version, self.mac_versions):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
-        if latest_eap(version, self.eap_versions):
+        if latest_eap(version, self.eap_release_versions):
            version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
