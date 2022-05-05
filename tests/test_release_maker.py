@@ -508,11 +508,11 @@ def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_vers
     rm.create_eap_releases()
     expected_tags = {
         f'{refapp["docker_repos"][0]}:6.0.0-RC2',
-        f'{refapp["docker_repos"][0]}:6.0.0-RC2-jdk11'
+        f'{refapp["docker_repos"][0]}:6.0.0-RC2-jdk11',
+        f'{refapp["docker_repos"][0]}:7.0.0-RC2',
     }
     unexpected_tags = {
         f'{refapp["docker_repos"][0]}:6.0.0-RC1',
-        f'{refapp["docker_repos"][0]}:7.0.0-RC2',
     }
     for tag in expected_tags:
         assert tag in caplog.text
