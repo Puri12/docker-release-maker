@@ -7,10 +7,16 @@
 set -e
 
 if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag>"
+    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag> ['true' if prerelease version]"
     exit 1
 fi
-RELEASE=$1
+IMAGE=$1
+IS_PRERELEASE=${2:-false}
+
+if [ x"$IS_PRERELEASE" != "xtrue" ]; then
+    echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring"
+    exit 0
+fi
 
 echo "######## Security Scan ########"
 SEV_THRESHOLD=${SEV_THRESHOLD:-high}
@@ -23,7 +29,7 @@ fi
 echo "Authenticating with Snyk..."
 snyk auth -d $SNYK_TOKEN
 
-echo "Enabling Snyk monitoring for image $RELEASE"
+echo "Enabling Snyk monitoring for image $IMAGE"
 # Note: A quirk of Snyk is that if we release a new version of the
 # same container (e.g. mycontainer:1.0.1 → mycontainer:1.0.2), the
 # former version will be removed and no longer monitored. As we need
@@ -32,8 +38,8 @@ echo "Enabling Snyk monitoring for image $RELEASE"
 # separate monitoring project for each version.
 snyk container monitor -d \
      --severity-threshold=$SEV_THRESHOLD \
-     --project-name=$RELEASE \
+     --project-name=$IMAGE \
      --project-tags=team-name=dc-deployment \
-     $RELEASE
+     $IMAGE
 
 exit 0
