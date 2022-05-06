@@ -455,23 +455,6 @@ def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_ver
 
 
 @mock.patch('releasemanager.docker.from_env')
-@mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
-@mock.patch.object(ReleaseManager, '_push_release')
-def test_create_eap_releases_flagged(mocked_method, mocked_docker, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
-    caplog.set_level(logging.INFO)
-    rm = ReleaseManager(**refapp)
-
-    rm.create_eap_releases()
-
-    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-EAP01', True)
-    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-EAP01-jdk11', True)
-    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-RC2', True)
-    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-RC2-jdk11', True)
-    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-m55', True)
-
-
-@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags')
 @mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
 def test_calculate_eap_tags(mocked_docker, mocked_existing_tags, mocked_eap_versions, refapp):
@@ -514,3 +497,21 @@ def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_vers
         assert tag in caplog.text
     for tag in unexpected_tags:
         assert tag not in caplog.text
+
+
+@mock.patch('releasemanager.docker.from_env')
+@mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
+@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
+@mock.patch.object(ReleaseManager, '_push_release')
+def test_create_eap_releases_flagged(mocked_method, mocked_docker, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
+    caplog.set_level(logging.INFO)
+    rm = ReleaseManager(**refapp)
+
+    rm.create_eap_releases()
+
+    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-EAP01', True)
+    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-EAP01-jdk11', True)
+    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-RC2', True)
+    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-RC2-jdk11', True)
+    mocked_method.assert_any_call('docker-public.packages.atlassian.com/atlassian/bitbucket-server:6.0.0-m55', True)
+
