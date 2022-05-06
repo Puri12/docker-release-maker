@@ -454,10 +454,11 @@ def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_ver
         assert tag not in caplog.text
 
 
+@mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
 @mock.patch('releasemanager.eap_versions', return_value={'6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
 @mock.patch.object(ReleaseManager, '_push_release')
-def test_create_eap_releases_flagged(mocked_method, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
+def test_create_eap_releases_flagged(mocked_method, mocked_docker, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
 

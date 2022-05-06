@@ -340,7 +340,6 @@ class ReleaseManager:
         return self._build_image(version, retry=retry+1)
 
     def _build_release(self, version, is_prerelease=False):
-        print(f"build = {is_prerelease}")
         logging.info(f"#### Building release {version}")
 
         image = self._build_image(version)
