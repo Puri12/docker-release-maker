@@ -25,7 +25,7 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
     echo "Authenticating with Snyk..."
     snyk auth -d $SNYK_TOKEN
 
-    echo "Enabling Snyk monitoring for image $IMAGE"
+    echo "Enabling Snyk monitoring for image $IMAGE."
     # Note: A quirk of Snyk is that if we release a new version of the
     # same container (e.g. mycontainer:1.0.1 → mycontainer:1.0.2), the
     # former version will be removed and no longer monitored. As we need
@@ -41,5 +41,5 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
     exit 0
 fi
 
-echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring"
+echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
 exit 0
