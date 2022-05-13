@@ -260,9 +260,9 @@ class ReleaseManager:
         logging.info('##### Creating new EAP releases #####')
         logging.info(f"Versions: {self.eap_release_versions}")
         versions_to_build = self.unbuilt_versions(self.eap_release_versions)
-        return self.build_releases(versions_to_build)
+        return self.build_releases(versions_to_build, is_prerelease=True)
 
-    def build_releases(self, versions_to_build):
+    def build_releases(self, versions_to_build, is_prerelease=False):
         logging.info(
             f'Found {len(versions_to_build)} '
             f'release{"" if len(versions_to_build)==1 else "s"} to build'
@@ -271,18 +271,18 @@ class ReleaseManager:
         if self.dockerfile is not None:
             logging.info(f'Using docker file "{self.dockerfile}"')
         if self.concurrent_builds > 1:
-            self._build_concurrent(versions_to_build)
+            self._build_concurrent(versions_to_build, is_prerelease)
         else:
             for version in versions_to_build:
-                self._build_release(version)
+                self._build_release(version, is_prerelease)
 
-    def _build_concurrent(self, versions_to_build):
+    def _build_concurrent(self, versions_to_build, is_prerelease=False):
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.concurrent_builds
         )
         builds = []
         for version in versions_to_build:
-            build = executor.submit(self._build_release, version)
+            build = executor.submit(self._build_release, version, is_prerelease)
             builds.append(build)
         for build in concurrent.futures.as_completed(builds):
             exc = build.exception()
@@ -291,7 +291,7 @@ class ReleaseManager:
                 executor.shutdown(wait=True, cancel_futures=True)
                 raise exc
 
-    def _push_release(self, release, retry=0):
+    def _push_release(self, release, retry=0, is_prerelease=False):
         if not self.push_docker:
             logging.info(f'Skipping push of tag "{release}"')
             return
@@ -306,10 +306,10 @@ class ReleaseManager:
             logging.warning(f'Pushing tag "{release}" failed; retrying in {retry+1}s ...')
             time.sleep(retry+1)
             # retry push in case of error
-            self._push_release(release, retry + 1)
+            self._push_release(release, retry + 1, is_prerelease)
         else:
             logging.info(f'Pushing tag "{release}" succeeded!')
-            self._run_post_push_hook(release)
+            self._run_post_push_hook(release, is_prerelease)
             return
 
 
@@ -339,7 +339,7 @@ class ReleaseManager:
         time.sleep(30) # wait 30s before retrying build after failure
         return self._build_image(version, retry=retry+1)
 
-    def _build_release(self, version):
+    def _build_release(self, version, is_prerelease=False):
         logging.info(f"#### Building release {version}")
 
         image = self._build_image(version)
@@ -359,7 +359,7 @@ class ReleaseManager:
                 logging.info(f'Tagging "{release}"')
                 image.tag(repo, tag=tag)
 
-                self._push_release(release)
+                self._push_release(release, is_prerelease)
 
     def _run_post_build_hook(self, image, version):
         if self.post_build_hook is None or self.post_build_hook == '':
@@ -372,13 +372,13 @@ class ReleaseManager:
 
         run_script(self.post_build_hook, image.id, is_release, test_candidate)
 
-    def _run_post_push_hook(self, release):
+    def _run_post_push_hook(self, release, is_prerelease=False):
         if self.post_push_hook is None or self.post_push_hook == '':
             logging.warning("Post-push hook is not set; skipping! ")
             return
 
         logging.info(f'Running hook: {self.post_push_hook}')
-        run_script(self.post_push_hook, release)
+        run_script(self.post_push_hook, release, str(is_prerelease).lower())
 
     def unbuilt_versions(self, candidate_versions):
         # Only exclude tags that exist in all repos
