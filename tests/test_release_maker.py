@@ -478,7 +478,7 @@ def test_calculate_eap_tags(mocked_docker, mocked_existing_tags, mocked_eap_vers
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2', '7.0.0-RC2'})
+@mock.patch('releasemanager.eap_versions', return_value={'5.9.9-RC1', '6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2', '7.0.0-RC2'})
 def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['start_version'] = '5.5'
@@ -501,7 +501,7 @@ def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_vers
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
+@mock.patch('releasemanager.eap_versions', return_value={'5.9.9-RC1', '6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
 @mock.patch.object(ReleaseManager, '_push_release')
 def test_create_eap_releases_flagged(mocked_method, mocked_docker, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
     caplog.set_level(logging.INFO)
