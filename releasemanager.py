@@ -134,7 +134,6 @@ def eap_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
-
 def latest(version, mac_versions):
     versions = [v for v in mac_versions]
     versions.sort(key=lambda s: [int(u) for u in s.split('.')])
@@ -233,7 +232,8 @@ class ReleaseManager:
         self.mac_versions = mac_versions(mac_product_key)
         self.release_versions = [v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = eap_versions(mac_product_key)
+        self.eap_release_versions = [v for v in eap_versions(mac_product_key)
+                                     if self.start_version.major <= Version(v).major]
 
         self.max_retries = 5
 
