@@ -81,6 +81,10 @@ def get_targets(repos):
     return list(targets)
 
 
+def release_filter(version):
+    return all(d.isdigit() for d in version.split('.'))
+
+
 def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
@@ -92,7 +96,7 @@ def fetch_mac_versions(product_key):
         r = requests.get(mac_url + request_url, params=params)
         version_data = r.json()
         for version in version_data['_embedded']['versions']:
-            if all(d.isdigit() for d in version['name'].split('.')):
+            if release_filter(version['name']):
                 logging.debug(f"Adding version {version['name']}")
                 versions.add(version['name'])
         if 'next' not in version_data['_links']:
@@ -122,7 +126,7 @@ def fetch_all_pac_versions(product_key):
 
 def fetch_pac_release_versions(product_key):
     all_vers = fetch_all_pac_versions(product_key)
-    versions = filter(lambda v: all(d.isdigit() for d in v.split('.')), all_vers)
+    versions = filter(release_filter, all_vers)
     return list(versions)
 
 
