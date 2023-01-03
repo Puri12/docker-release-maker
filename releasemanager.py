@@ -129,7 +129,7 @@ jira_product_key_mapper = {
 }
 
 
-def eap_versions(product_key):
+def fetch_mac_eap_versions(product_key):
     feed_key = product_key
     description_key = None
     if 'jira' in product_key:
@@ -248,7 +248,7 @@ class ReleaseManager:
         self.avail_versions = fetch_mac_versions(mac_product_key)
         self.release_versions = [v for v in self.avail_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = [v for v in eap_versions(mac_product_key)
+        self.eap_release_versions = [v for v in fetch_mac_eap_versions(mac_product_key)
                                      if self.start_version.major <= Version(v).major]
 
         self.max_retries = 5
