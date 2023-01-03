@@ -109,7 +109,6 @@ def fetch_mac_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
-
 pac_url_map = {
     'bitbucket-mesh': 'bitbucket/mesh/mesh-distribution',
 }
@@ -129,8 +128,20 @@ def fetch_pac_release_versions(product_key):
     versions = filter(release_filter, all_vers)
     return list(versions)
 
+# PAC has everything, including random snapshot builds. Limit this to RC and milestone builds.
+#pac_eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
+pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+')
+def pac_eap_filter(version):
+    vmatch = pac_eap_version_pattern.match(str.upper(version))
+    return vmatch != None
 
-eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
+def fetch_pac_eap_versions(product_key):
+    all_vers = fetch_all_pac_versions(product_key)
+    versions = filter(pac_eap_filter, all_vers)
+    return list(versions)
+
+
+mac_eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
 jira_product_key_mapper = {
     'jira': 'jira core',
     'jira-software': 'jira software',
@@ -153,7 +164,7 @@ def fetch_mac_eap_versions(product_key):
     for item in data:
         if description_key is not None and description_key not in item['description'].lower():
                 continue
-        version = eap_version_pattern.search(item['description']).group(1)
+        version = mac_eap_version_pattern.search(item['description']).group(1)
         versions.add(version)
     logging.info(f'Found {len(versions)} EAPs')
     return sorted(list(versions), reverse=True)

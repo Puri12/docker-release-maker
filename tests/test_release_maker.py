@@ -2,12 +2,13 @@ import itertools
 import logging
 import importlib
 import os
+import re
 from unittest import mock
 
 import docker
 import pytest
 
-from releasemanager import fetch_mac_eap_versions, existing_tags, fetch_mac_versions, fetch_pac_release_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
+from releasemanager import fetch_mac_eap_versions, existing_tags, fetch_mac_versions, fetch_pac_release_versions, fetch_pac_eap_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
 
 class Dict2Class(object):
     def __init__(self, my_dict):
@@ -35,6 +36,13 @@ def test_pac_release_versions():
 def test_mac_eap_versions(refapp):
     versions = fetch_mac_eap_versions(refapp['mac_product_key'])
     assert isinstance(versions, list)
+
+def test_pac_eap_versions():
+    versions = fetch_pac_eap_versions('bitbucket-mesh')
+    assert isinstance(versions, list)
+    for v in versions:
+        assert re.match(r'[\d\.]+-(rc|m)\d+', str.lower(v)) != None
+
 
 def test_version_sorting():
     x = Version('1.9.9')
