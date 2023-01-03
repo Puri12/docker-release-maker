@@ -80,8 +80,7 @@ def get_targets(repos):
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
     return list(targets)
 
-
-def mac_versions(product_key):
+def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
     params = {'offset': 0, 'limit': 50}
@@ -229,7 +228,7 @@ class ReleaseManager:
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
-        self.mac_versions = mac_versions(mac_product_key)
+        self.mac_versions = fetch_mac_versions(mac_product_key)
         self.release_versions = [v for v in self.mac_versions
                                  if self.start_version <= Version(v) < self.end_version]
         self.eap_release_versions = [v for v in eap_versions(mac_product_key)
