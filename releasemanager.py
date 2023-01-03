@@ -75,7 +75,6 @@ def existing_tags(repo):
     tags = {t for t in tag_data["tags"]}
     return tags
 
-
 def get_targets(repos):
     logging.info(f'Retrieving Docker tags for {repos}')
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
@@ -111,7 +110,7 @@ pac_url_map = {
     'bitbucket-mesh': 'bitbucket/mesh/mesh-distribution',
 }
 
-def fetch_pac_versions(product_key):
+def fetch_all_pac_versions(product_key):
     meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
     r = requests.get(meta_url)
     xml = xmltree.fromstring(r.text)
@@ -119,6 +118,12 @@ def fetch_pac_versions(product_key):
     versions = list(map(lambda ve: ve.text, xml.findall('.//version')))
 
     return versions
+
+
+def fetch_pac_release_versions(product_key):
+    all_vers = fetch_all_pac_versions(product_key)
+    versions = filter(lambda v: all(d.isdigit() for d in v.split('.')), all_vers)
+    return list(versions)
 
 
 eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
