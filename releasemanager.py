@@ -128,8 +128,18 @@ def fetch_pac_release_versions(product_key):
     versions = filter(release_filter, all_vers)
     return list(versions)
 
+
+def fetch_release_versions(product_key):
+    # Mesh is the only one not on Marketplace, so we use the Maven
+    # metadata on PAC to extract versions.  NOTE: If we move others to
+    # PAC then make this a dist lookup, but this is simpler for now.
+    if product_key == 'bitbucket-mesh':
+        return fetch_pac_release_versions(product_key)
+    else:
+        return fetch_mac_versions(product_key)
+
+
 # PAC has everything, including random snapshot builds. Limit this to RC and milestone builds.
-#pac_eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
 pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+')
 def pac_eap_filter(version):
     vmatch = pac_eap_version_pattern.match(str.upper(version))
@@ -168,6 +178,13 @@ def fetch_mac_eap_versions(product_key):
         versions.add(version)
     logging.info(f'Found {len(versions)} EAPs')
     return sorted(list(versions), reverse=True)
+
+
+def fetch_eap_versions(product_key):
+    if product_key == 'bitbucket-mesh':
+        return fetch_pac_eap_versions(product_key)
+    else:
+        return fetch_mac_eap_versions(product_key)
 
 
 def latest(version, avail_versions):
@@ -265,10 +282,10 @@ class ReleaseManager:
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
-        self.avail_versions = fetch_mac_versions(mac_product_key)
+        self.avail_versions = fetch_release_versions(mac_product_key)
         self.release_versions = [v for v in self.avail_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = [v for v in fetch_mac_eap_versions(mac_product_key)
+        self.eap_release_versions = [v for v in fetch_eap_versions(mac_product_key)
                                      if self.start_version.major <= Version(v).major]
 
         self.max_retries = 5
