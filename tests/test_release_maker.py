@@ -7,7 +7,7 @@ from unittest import mock
 import docker
 import pytest
 
-from releasemanager import eap_versions, existing_tags, fetch_mac_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
+from releasemanager import eap_versions, existing_tags, fetch_mac_versions, fetch_pac_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
 
 class Dict2Class(object):
     def __init__(self, my_dict):
@@ -25,6 +25,12 @@ def test_mac_versions(refapp):
     assert len(versions) > 0
     assert isinstance(versions, list)
     assert all([i.isdigit() for v in versions for i in v.split('.')])
+
+def test_pac_versions():
+    versions = fetch_pac_versions('bitbucket-mesh')
+    assert len(versions) > 0
+    assert isinstance(versions, list)
+    #assert all([i.isdigit() for v in versions for i in v.split('.')])
 
 def test_eap_versions(refapp):
     versions = eap_versions(refapp['mac_product_key'])

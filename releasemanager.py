@@ -5,6 +5,7 @@ import json
 import logging
 import re
 import time
+import xml.etree.ElementTree as xmltree
 
 import docker
 import requests
@@ -80,6 +81,7 @@ def get_targets(repos):
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
     return list(targets)
 
+
 def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
@@ -102,6 +104,21 @@ def fetch_mac_versions(product_key):
     logging.info(f'Found {len(versions)} versions')
     logging.debug(f'List of all versions from marketplace: {sorted(list(versions), reverse=True)}')
     return sorted(list(versions), reverse=True)
+
+
+
+pac_url_map = {
+    'bitbucket-mesh': 'bitbucket/mesh/mesh-distribution',
+}
+
+def fetch_pac_versions(product_key):
+    meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
+    r = requests.get(meta_url)
+    xml = xmltree.fromstring(r.text)
+
+    versions = list(map(lambda ve: ve.text, xml.findall('.//version')))
+
+    return versions
 
 
 eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
@@ -133,23 +150,23 @@ def eap_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
-def latest(version, mac_versions):
-    versions = [v for v in mac_versions]
+def latest(version, avail_versions):
+    versions = [v for v in avail_versions]
     versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in versions[-1:]
 
 
-def latest_major(version, mac_versions):
+def latest_major(version, avail_versions):
     major_version = version.split('.')[0]
-    major_versions = [v for v in mac_versions
+    major_versions = [v for v in avail_versions
                       if v.startswith(f'{major_version}.')]
     major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in major_versions[-1:]
 
 
-def latest_minor(version, mac_versions):
+def latest_minor(version, avail_versions):
     major_minor_version = '.'.join(version.split('.')[:2])
-    minor_versions = [v for v in mac_versions
+    minor_versions = [v for v in avail_versions
                       if v.startswith(f'{major_minor_version}.')]
     minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in minor_versions[-1:]
@@ -228,8 +245,8 @@ class ReleaseManager:
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
-        self.mac_versions = fetch_mac_versions(mac_product_key)
-        self.release_versions = [v for v in self.mac_versions
+        self.avail_versions = fetch_mac_versions(mac_product_key)
+        self.release_versions = [v for v in self.avail_versions
                                  if self.start_version <= Version(v) < self.end_version]
         self.eap_release_versions = [v for v in eap_versions(mac_product_key)
                                      if self.start_version.major <= Version(v).major]
@@ -367,7 +384,7 @@ class ReleaseManager:
 
         # Usage: post_build.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
         is_release = str(self.push_docker).lower()
-        test_candidate = str(latest_minor(version, self.mac_versions)).lower()
+        test_candidate = str(latest_minor(version, self.avail_versions)).lower()
 
         run_script(self.post_build_hook, image.id, is_release, test_candidate)
 
@@ -397,22 +414,22 @@ class ReleaseManager:
     def calculate_tags(self, version):
         tags = set()
         version_tags = {version}
-        if latest_major(version, self.mac_versions):
+        if latest_major(version, self.avail_versions):
             major_version = version.split('.')[0]
             version_tags.add(major_version)
-        if latest_minor(version, self.mac_versions):
+        if latest_minor(version, self.avail_versions):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
         if latest_eap(version, self.eap_release_versions):
            version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
-            if latest(version, self.mac_versions):
+            if latest(version, self.avail_versions):
                 tags.add('latest')
         for suffix in self.tag_suffixes:
             for v in version_tags:
                 suffix_tag = f'{v}-{suffix}'
                 tags.add(suffix_tag)
-            if latest(version, self.mac_versions):
+            if latest(version, self.avail_versions):
                 tags.add(suffix)
         return tags
