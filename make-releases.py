@@ -20,7 +20,7 @@ def parse_args():
                         help='A comma-separated list of repositories to push to.')
 
     parser.add_argument('--dockerfile-version-arg', dest='dockerfile_version_arg', required=True)
-    parser.add_argument('--mac-product-key', dest='mac_product_key', required=True)
+    parser.add_argument('--product-key', '--mac-product-key', dest='product_key', required=True)
 
     parser.add_argument('--concurrent-builds', dest='concurrent_builds', type=int, default=1)
     parser.add_argument('--default-release', dest='default_release', action='store_true')
@@ -54,7 +54,7 @@ def main(args):
                              dockerfile=args.dockerfile,
                              dockerfile_buildargs=args.dockerfile_buildargs,
                              dockerfile_version_arg=args.dockerfile_version_arg,
-                             mac_product_key=args.mac_product_key,
+                             product_key=args.product_key,
                              tag_suffixes=args.tag_suffixes,
                              push_docker=args.push_docker,
                              post_build_hook=args.post_build_hook,

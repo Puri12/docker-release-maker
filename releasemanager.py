@@ -259,7 +259,7 @@ class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
+                 product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
@@ -282,10 +282,10 @@ class ReleaseManager:
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
-        self.avail_versions = fetch_release_versions(mac_product_key)
+        self.avail_versions = fetch_release_versions(product_key)
         self.release_versions = [v for v in self.avail_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = [v for v in fetch_eap_versions(mac_product_key)
+        self.eap_release_versions = [v for v in fetch_eap_versions(product_key)
                                      if self.start_version.major <= Version(v).major]
 
         self.max_retries = 5

@@ -22,7 +22,7 @@ def test_existing_tags(refapp):
     assert all([isinstance(v, str) for v in tags])
 
 def test_mac_release_versions(refapp):
-    versions = fetch_mac_versions(refapp['mac_product_key'])
+    versions = fetch_mac_versions(refapp['product_key'])
     assert len(versions) > 0
     assert isinstance(versions, list)
     assert all([i.isdigit() for v in versions for i in v.split('.')])
@@ -34,7 +34,7 @@ def test_pac_release_versions():
     assert all([i.isdigit() for v in versions for i in v.split('.')])
 
 def test_mac_eap_versions(refapp):
-    versions = fetch_mac_eap_versions(refapp['mac_product_key'])
+    versions = fetch_mac_eap_versions(refapp['product_key'])
     assert isinstance(versions, list)
 
 def test_pac_eap_versions():
