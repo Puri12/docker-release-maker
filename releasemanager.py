@@ -5,6 +5,7 @@ import json
 import logging
 import re
 import time
+import xml.etree.ElementTree as xmltree
 
 import docker
 import requests
@@ -74,14 +75,17 @@ def existing_tags(repo):
     tags = {t for t in tag_data["tags"]}
     return tags
 
-
 def get_targets(repos):
     logging.info(f'Retrieving Docker tags for {repos}')
     targets = map(lambda repo: TargetRepo(repo, existing_tags(repo)), repos)
     return list(targets)
 
 
-def mac_versions(product_key):
+def release_filter(version):
+    return all(d.isdigit() for d in version.split('.'))
+
+
+def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
     params = {'offset': 0, 'limit': 50}
@@ -92,7 +96,7 @@ def mac_versions(product_key):
         r = requests.get(mac_url + request_url, params=params)
         version_data = r.json()
         for version in version_data['_embedded']['versions']:
-            if all(d.isdigit() for d in version['name'].split('.')):
+            if release_filter(version['name']):
                 logging.debug(f"Adding version {version['name']}")
                 versions.add(version['name'])
         if 'next' not in version_data['_links']:
@@ -105,7 +109,48 @@ def mac_versions(product_key):
     return sorted(list(versions), reverse=True)
 
 
-eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
+pac_url_map = {
+    'bitbucket-mesh': 'bitbucket/mesh/mesh-distribution',
+}
+
+def fetch_all_pac_versions(product_key):
+    meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
+    r = requests.get(meta_url)
+    xml = xmltree.fromstring(r.text)
+
+    versions = list(map(lambda ve: ve.text, xml.findall('.//version')))
+
+    return versions
+
+
+def fetch_pac_release_versions(product_key):
+    all_vers = fetch_all_pac_versions(product_key)
+    versions = filter(release_filter, all_vers)
+    return list(versions)
+
+
+# Mesh is the only one not on Marketplace, so we use the Maven
+# metadata on PAC to extract versions.
+pac_release_api_map = {
+    'bitbucket-mesh': fetch_pac_release_versions
+}
+def fetch_release_versions(product_key):
+    lookup = pac_release_api_map.get(product_key, fetch_mac_versions)
+    return lookup(product_key)
+
+# PAC has everything, including random snapshot builds. Limit this to RC and milestone builds.
+pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+', re.IGNORECASE)
+def pac_eap_filter(version):
+    vmatch = pac_eap_version_pattern.match(version)
+    return vmatch != None
+
+def fetch_pac_eap_versions(product_key):
+    all_vers = fetch_all_pac_versions(product_key)
+    versions = filter(pac_eap_filter, all_vers)
+    return list(versions)
+
+
+mac_eap_version_pattern = re.compile(r'(\d+(?:\.\d+)+(?:-[a-zA-Z0-9]+)*)')
 jira_product_key_mapper = {
     'jira': 'jira core',
     'jira-software': 'jira software',
@@ -113,7 +158,7 @@ jira_product_key_mapper = {
 }
 
 
-def eap_versions(product_key):
+def fetch_mac_eap_versions(product_key):
     feed_key = product_key
     description_key = None
     if 'jira' in product_key:
@@ -128,29 +173,36 @@ def eap_versions(product_key):
     for item in data:
         if description_key is not None and description_key not in item['description'].lower():
                 continue
-        version = eap_version_pattern.search(item['description']).group(1)
+        version = mac_eap_version_pattern.search(item['description']).group(1)
         versions.add(version)
     logging.info(f'Found {len(versions)} EAPs')
     return sorted(list(versions), reverse=True)
 
 
-def latest(version, mac_versions):
-    versions = [v for v in mac_versions]
+def fetch_eap_versions(product_key):
+    if product_key == 'bitbucket-mesh':
+        return fetch_pac_eap_versions(product_key)
+    else:
+        return fetch_mac_eap_versions(product_key)
+
+
+def latest(version, avail_versions):
+    versions = [v for v in avail_versions]
     versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in versions[-1:]
 
 
-def latest_major(version, mac_versions):
+def latest_major(version, avail_versions):
     major_version = version.split('.')[0]
-    major_versions = [v for v in mac_versions
+    major_versions = [v for v in avail_versions
                       if v.startswith(f'{major_version}.')]
     major_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in major_versions[-1:]
 
 
-def latest_minor(version, mac_versions):
+def latest_minor(version, avail_versions):
     major_minor_version = '.'.join(version.split('.')[:2])
-    minor_versions = [v for v in mac_versions
+    minor_versions = [v for v in avail_versions
                       if v.startswith(f'{major_minor_version}.')]
     minor_versions.sort(key=lambda s: [int(u) for u in s.split('.')])
     return version in minor_versions[-1:]
@@ -206,7 +258,7 @@ class ReleaseManager:
 
     def __init__(self, start_version, end_version, concurrent_builds, default_release,
                  docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
-                 mac_product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
+                 product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
                  job_offset=None, jobs_total=None):
         self.start_version = Version(start_version)
         if end_version is not None:
@@ -229,10 +281,10 @@ class ReleaseManager:
         self.job_offset = job_offset
         self.jobs_total = jobs_total
 
-        self.mac_versions = mac_versions(mac_product_key)
-        self.release_versions = [v for v in self.mac_versions
+        self.avail_versions = fetch_release_versions(product_key)
+        self.release_versions = [v for v in self.avail_versions
                                  if self.start_version <= Version(v) < self.end_version]
-        self.eap_release_versions = [v for v in eap_versions(mac_product_key)
+        self.eap_release_versions = [v for v in fetch_eap_versions(product_key)
                                      if self.start_version.major <= Version(v).major]
 
         self.max_retries = 5
@@ -368,7 +420,7 @@ class ReleaseManager:
 
         # Usage: post_build.sh <image-tag-or-hash> ['true' if release image]  ['true' if test candidate]
         is_release = str(self.push_docker).lower()
-        test_candidate = str(latest_minor(version, self.mac_versions)).lower()
+        test_candidate = str(latest_minor(version, self.avail_versions)).lower()
 
         run_script(self.post_build_hook, image.id, is_release, test_candidate)
 
@@ -398,22 +450,22 @@ class ReleaseManager:
     def calculate_tags(self, version):
         tags = set()
         version_tags = {version}
-        if latest_major(version, self.mac_versions):
+        if latest_major(version, self.avail_versions):
             major_version = version.split('.')[0]
             version_tags.add(major_version)
-        if latest_minor(version, self.mac_versions):
+        if latest_minor(version, self.avail_versions):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
         if latest_eap(version, self.eap_release_versions):
            version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
-            if latest(version, self.mac_versions):
+            if latest(version, self.avail_versions):
                 tags.add('latest')
         for suffix in self.tag_suffixes:
             for v in version_tags:
                 suffix_tag = f'{v}-{suffix}'
                 tags.add(suffix_tag)
-            if latest(version, self.mac_versions):
+            if latest(version, self.avail_versions):
                 tags.add(suffix)
         return tags

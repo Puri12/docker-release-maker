@@ -166,7 +166,7 @@ pipelines:
                 --default-release
                 --dockerfile-buildargs='ARTEFACT_NAME=atlassian-jira-software,BASE_IMAGE=adoptopenjdk:8-hotspot'
                 --dockerfile-version-arg='JIRA_VERSION'
-                --mac-product-key='jira-software'
+                --product-key='jira-software'
                 --tag-suffixes=''
                 --concurrent-builds='1'
                 --job-offset='0'
@@ -209,12 +209,13 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
    The build argument in the Dockerfile that specifies product version. The Dockerfile
    should use this to retrieve / install the correct product version.
 
-* `--mac-product-key`
+* `--product-key`
 
-   The product key used by the Atlassian Marketplace API, to determine available releases.
+   The product key used to identify the product upstream to determine available releases.
    Valid values include:
    * bamboo
    * bitbucket
+   * bitbucket-mesh
    * confluence
    * crowd
    * fisheye
@@ -222,6 +223,9 @@ repositories, e.g: https://bitbucket.org/atlassian-docker/docker-atlassian-jira/
    * jira-software
    * jira-servicedesk
 
+   Currently detecting release in either the Atlassian Marketplace API or the
+   Maven metadata is supported, depending on the target (see
+   `release-manager.py` for details).
 
 ## Optional parameters
 

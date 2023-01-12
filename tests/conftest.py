@@ -12,7 +12,7 @@ def refapp():
         'dockerfile': None,
         'dockerfile_buildargs': None,
         'dockerfile_version_arg': 'BITBUCKET_VERSION',
-        'mac_product_key': 'bitbucket',
+        'product_key': 'bitbucket',
         'tag_suffixes': 'jdk11,ubuntu'.split(','),
         'push_docker': True,
         'post_build_hook': None,

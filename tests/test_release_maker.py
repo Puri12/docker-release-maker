@@ -2,12 +2,13 @@ import itertools
 import logging
 import importlib
 import os
+import re
 from unittest import mock
 
 import docker
 import pytest
 
-from releasemanager import eap_versions, existing_tags, mac_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
+from releasemanager import fetch_mac_eap_versions, existing_tags, fetch_mac_versions, fetch_pac_release_versions, fetch_pac_eap_versions, ReleaseManager, str2bool, Version, latest_minor, batch_job
 
 class Dict2Class(object):
     def __init__(self, my_dict):
@@ -20,16 +21,28 @@ def test_existing_tags(refapp):
     assert isinstance(tags, set)
     assert all([isinstance(v, str) for v in tags])
 
-
-def test_mac_versions(refapp):
-    versions = mac_versions(refapp['mac_product_key'])
+def test_mac_release_versions(refapp):
+    versions = fetch_mac_versions(refapp['product_key'])
     assert len(versions) > 0
     assert isinstance(versions, list)
     assert all([i.isdigit() for v in versions for i in v.split('.')])
 
-def test_eap_versions(refapp):
-    versions = eap_versions(refapp['mac_product_key'])
+def test_pac_release_versions():
+    versions = fetch_pac_release_versions('bitbucket-mesh')
+    assert len(versions) > 0
     assert isinstance(versions, list)
+    assert all([i.isdigit() for v in versions for i in v.split('.')])
+
+def test_mac_eap_versions(refapp):
+    versions = fetch_mac_eap_versions(refapp['product_key'])
+    assert isinstance(versions, list)
+
+def test_pac_eap_versions():
+    versions = fetch_pac_eap_versions('bitbucket-mesh')
+    assert isinstance(versions, list)
+    for v in versions:
+        assert re.match(r'[\d\.]+-(rc|m)\d+', str.lower(v)) != None
+
 
 def test_version_sorting():
     x = Version('1.9.9')
@@ -96,7 +109,7 @@ def test_slice_includes_all_versions():
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.get_targets')
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.7.7', '6.7.8'})
 def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, refapp):
     rm = ReleaseManager(**refapp)
 
@@ -176,7 +189,7 @@ def test_calculate_tags(mocked_docker, mocked_get_targets, mocked_mac_versions, 
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_create_releases(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
@@ -198,7 +211,7 @@ def test_create_releases(mocked_docker, mocked_existing_tags, mocked_mac_version
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_update_releases(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
@@ -220,7 +233,7 @@ def test_update_releases(mocked_docker, mocked_existing_tags, mocked_mac_version
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.5.5', '6.7.7', '6.5.4-jdk11', '6.5.5-ubuntu'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.5.5', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.5.5', '6.7.7', '6.7.8'})
 def test_create_competing_releases(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
@@ -259,7 +272,7 @@ def test_create_competing_releases(mocked_docker, mocked_existing_tags, mocked_m
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value=set())
-@mock.patch('releasemanager.mac_versions', return_value={'6.5.5', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'6.5.5', '6.7.7', '6.7.8'})
 def test_raise_exceptions(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
@@ -278,7 +291,7 @@ def test_raise_exceptions(mocked_docker, mocked_existing_tags, mocked_mac_versio
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_custom_buildargs(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['dockerfile_buildargs'] = 'ARTEFACT=jira-software,BASE_IMAGE=adoptopenjdk/openjdk11:slim'
@@ -290,7 +303,7 @@ def test_custom_buildargs(mocked_docker, mocked_existing_tags, mocked_mac_versio
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_create_releases_with_specified_dockerfile(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     custom_dockerfile = 'Dockerfile-test-123'
@@ -302,7 +315,7 @@ def test_create_releases_with_specified_dockerfile(mocked_docker, mocked_existin
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
 def test_start_version(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['start_version'] = '6.5'
@@ -326,7 +339,7 @@ def test_start_version(mocked_docker, mocked_existing_tags, mocked_mac_versions,
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
 def test_end_version(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['end_version'] = '6.7'
@@ -350,7 +363,7 @@ def test_end_version(mocked_docker, mocked_existing_tags, mocked_mac_versions, c
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.6', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.6', '5.6.7', '6.4.4', '6.5.4', '6.7.7', '6.7.8'})
 def test_min_end_version(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['start_version'] = '5.5'
@@ -375,7 +388,7 @@ def test_min_end_version(mocked_docker, mocked_existing_tags, mocked_mac_version
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_make_release_create(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
 
@@ -405,7 +418,7 @@ def test_make_release_create(mocked_docker, mocked_existing_tags, mocked_mac_ver
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7'})
-@mock.patch('releasemanager.mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
+@mock.patch('releasemanager.fetch_mac_versions', return_value={'5.4.3', '5.6.7', '6.5.4', '6.7.7', '6.7.8'})
 def test_make_release_update(mocked_docker, mocked_existing_tags, mocked_mac_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
 
@@ -435,7 +448,7 @@ def test_make_release_update(mocked_docker, mocked_existing_tags, mocked_mac_ver
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'4.0.0-RC1', '6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
+@mock.patch('releasemanager.fetch_mac_eap_versions', return_value={'4.0.0-RC1', '6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
 def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     rm = ReleaseManager(**refapp)
@@ -457,7 +470,7 @@ def test_create_eap_releases(mocked_docker, mocked_existing_tags, mocked_eap_ver
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags')
-@mock.patch('releasemanager.eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
+@mock.patch('releasemanager.fetch_mac_eap_versions', return_value={'6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2'})
 def test_calculate_eap_tags(mocked_docker, mocked_existing_tags, mocked_eap_versions, refapp):
     rm = ReleaseManager(**refapp)
 
@@ -479,7 +492,7 @@ def test_calculate_eap_tags(mocked_docker, mocked_existing_tags, mocked_eap_vers
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'4.0.0-RC1', '6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2', '7.0.0-RC2'})
+@mock.patch('releasemanager.fetch_mac_eap_versions', return_value={'4.0.0-RC1', '6.0.0-RC1', '6.0.0-m55', '6.0.0-RC2', '7.0.0-RC2'})
 def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_versions, caplog, refapp):
     caplog.set_level(logging.INFO)
     refapp['start_version'] = '5.5'
@@ -503,7 +516,7 @@ def test_eap_version_ranges(mocked_docker, mocked_existing_tags, mocked_eap_vers
 
 @mock.patch('releasemanager.docker.from_env')
 @mock.patch('releasemanager.existing_tags', return_value={'5.6.7', '6.7.7', '6.0.0-RC1'})
-@mock.patch('releasemanager.eap_versions', return_value={'5.9.9-RC1', '6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
+@mock.patch('releasemanager.fetch_mac_eap_versions', return_value={'5.9.9-RC1', '6.0.0-m55', '6.0.0-RC2', '6.0.0-EAP01'})
 @mock.patch.object(ReleaseManager, '_push_release')
 def test_create_eap_releases_flagged(mocked_method, mocked_docker, mocked_eap_versions, mocked_existing_tags, caplog, refapp):
     caplog.set_level(logging.INFO)
