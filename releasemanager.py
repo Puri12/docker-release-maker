@@ -129,20 +129,19 @@ def fetch_pac_release_versions(product_key):
     return list(versions)
 
 
+# Mesh is the only one not on Marketplace, so we use the Maven
+# metadata on PAC to extract versions.
+pac_release_api_map = {
+    'bitbucket-mesh': fetch_pac_release_versions
+}
 def fetch_release_versions(product_key):
-    # Mesh is the only one not on Marketplace, so we use the Maven
-    # metadata on PAC to extract versions.  NOTE: If we move others to
-    # PAC then make this a dist lookup, but this is simpler for now.
-    if product_key == 'bitbucket-mesh':
-        return fetch_pac_release_versions(product_key)
-    else:
-        return fetch_mac_versions(product_key)
-
+    lookup = pac_release_api_map.get(product_key, fetch_mac_versions)
+    return lookup(product_key)
 
 # PAC has everything, including random snapshot builds. Limit this to RC and milestone builds.
-pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+')
+pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+', re.IGNORECASE)
 def pac_eap_filter(version):
-    vmatch = pac_eap_version_pattern.match(str.upper(version))
+    vmatch = pac_eap_version_pattern.match(version)
     return vmatch != None
 
 def fetch_pac_eap_versions(product_key):
