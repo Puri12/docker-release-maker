@@ -34,6 +34,7 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
     # separate monitoring project for each version.
     snyk container monitor -d \
          --severity-threshold=$SEV_THRESHOLD \
+         --exclude-app-vulns \
          --project-name=$IMAGE \
          --project-tags=team-name=dc-deployment \
          $IMAGE

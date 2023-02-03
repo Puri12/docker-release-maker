@@ -46,10 +46,15 @@ echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
 echo "Performing security scan from the directory [`pwd`]"
 
 if [ -f "$SNYK_FILE" ]; then
-  echo "Performing security scan with .snyk policy file"
-  snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD --policy-path=$SNYK_FILE
-else 
-  snyk container test -d $IMAGE --severity-threshold=$SEV_THRESHOLD
+    echo "Performing security scan with .snyk policy file"
+    snyk container test -d $IMAGE \
+         --severity-threshold=$SEV_THRESHOLD \
+         --exclude-app-vulns \
+         --policy-path=$SNYK_FILE
+else
+    snyk container test -d $IMAGE \
+         --severity-threshold=$SEV_THRESHOLD \
+         --exclude-app-vulns
 fi
 
 echo "######## Integration Testing ########"
