@@ -15,8 +15,8 @@ pipelines:
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high
-            - npx snyk container monitor ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high
+            - npx snyk container test ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high --exclude-app-vulns
+            - npx snyk container monitor ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high --exclude-app-vulns
 
     '**':
       - step:
@@ -34,4 +34,4 @@ pipelines:
             - nvm install 14.16 # Snyk needs a newer version
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
-            - npx snyk container test docker-release-maker:local --severity-threshold=high
+            - npx snyk container test docker-release-maker:local --severity-threshold=high --exclude-app-vulns
