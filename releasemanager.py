@@ -248,10 +248,7 @@ def run_script(script, *args):
     script_command = [script] + list(args)
     logging.info(f'Running script: "{script_command}"')
     proc = subprocess.run(script_command)
-    if proc.returncode != 0:
-        msg = f"Script '{script}' exited with non-zero ({proc.returncode}); failing!"
-        logging.error(msg)
-        raise TestFailedException(msg)
+    return proc
 
 
 class ReleaseManager:
@@ -422,7 +419,26 @@ class ReleaseManager:
         is_release = str(self.push_docker).lower()
         test_candidate = str(latest_minor(version, self.avail_versions)).lower()
 
-        run_script(self.post_build_hook, image.id, is_release, test_candidate)
+        retries = 5
+        for i in range(retries):
+            exit_code = run_script(self.post_build_hook, image.id, is_release, test_candidate)
+            if exit_code == 0:
+                break
+            # Exit code 1 means the scan has been successful
+            # See: https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
+            # No retries, raising an exception
+            elif exit_code == 1:
+                msg = f"Script '{self.post_build_hook}' exited with non-zero ({exit_code}); failing!"
+                logging.error(msg)
+                raise TestFailedException(msg)
+            else:
+                if i == retries - 1:
+                    msg = f"Script '{self.post_build_hook}' exited with non-zero ({exit_code}); failing!"
+                    logging.error(msg)
+                    raise TestFailedException(msg)
+                retry_message = f"Script '{self.post_build_hook}' exited with response code {exit_code}. Retrying ({i+1}/{retries})"
+                logging.warning(retry_message)
+                time.sleep(5)
 
     def _run_post_push_hook(self, release, is_prerelease=False):
         if self.post_push_hook is None or self.post_push_hook == '':
@@ -430,7 +446,20 @@ class ReleaseManager:
             return
 
         logging.info(f'Running hook: {self.post_push_hook}')
-        run_script(self.post_push_hook, release, str(is_prerelease).lower())
+
+        retries = 5
+        for i in range(retries):
+            exit_code = run_script(self.post_push_hook, release, str(is_prerelease).lower())
+            # See: https://docs.snyk.io/snyk-cli/commands/monitor#exit-codes
+            if exit_code == 0:
+                break
+            if i == retries - 1:
+                msg = f"Script '{self.post_push_hook}' exited with non-zero ({exit_code}); failing!"
+                logging.error(msg)
+                raise TestFailedException(msg)
+            retry_message = f"Script '{self.post_push_hook}' exited with response code {exit_code}. Retrying ({i+1}/{retries})"
+            logging.warning(retry_message)
+            time.sleep(5)
 
     def unbuilt_versions(self, candidate_versions):
         # Only exclude tags that exist in all repos
