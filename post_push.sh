@@ -23,12 +23,12 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
             break
         fi
         (( retries-- ))
-        echo "Failed to setup Snyk container monitoring. Will retry in 10 seconds..."
+        echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
         sleep $delay
     done
 
     if [[ $retries -eq 0 ]]; then
-        echo "Snyk container monitoring failed after $retries retries."
+        echo "Snyk container monitoring failed after ${retries} retries."
         return 1
     fi
 fi
