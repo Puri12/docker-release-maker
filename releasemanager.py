@@ -14,6 +14,10 @@ import os
 
 from retry import retry
 
+RETRY_COUNT = 10
+RETRY_DELAY = 1
+RETRY_BACKOFF = 2
+
 
 class Registry:
     DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
@@ -76,7 +80,7 @@ class TargetRepo:
 #
 # 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
 # each retry
-@retry(Exception, tries=10, delay=1, backoff=2)
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://{Registry.USERNAME}:{Registry.PASSWORD}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
@@ -103,7 +107,7 @@ def release_filter(version):
 #
 # 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
 # each retry
-@retry(Exception, tries=10, delay=1, backoff=2)
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
@@ -139,7 +143,7 @@ pac_url_map = {
 #
 # 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
 # each retry
-@retry(Exception, tries=10, delay=1, backoff=2)
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_all_pac_versions(product_key):
     meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
     r = requests.get(meta_url)
@@ -197,7 +201,7 @@ jira_product_key_mapper = {
 #
 # 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
 # each retry
-@retry(Exception, tries=10, delay=1, backoff=2)
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_eap_versions(product_key):
     feed_key = product_key
     description_key = None
