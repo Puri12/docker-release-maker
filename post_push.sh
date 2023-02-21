@@ -6,39 +6,8 @@
 
 set -e
 
-if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag> ['true' if prerelease version]"
-    exit 1
-fi
-IMAGE=$1
-IS_PRERELEASE=${2:-false}
-
-if [ x"$IS_PRERELEASE" != "xtrue" ]; then
-    local retries=3
-    local delay=10
-
-    while (( retries > 0 )); do
-        sync_container_monitoring
-        if [[ $? -eq 0 ]]; then
-            break
-        fi
-        (( retries-- ))
-        echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
-        sleep $delay
-    done
-
-    if [[ $retries -eq 0 ]]; then
-        echo "Snyk container monitoring failed after ${retries} retries."
-        return 1
-    fi
-fi
-
-echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
-exit 0
-
-
 function sync_container_monitoring() {
-    echo "######## Security Scan ########"
+    echo "######## Snyk container Monitoring ########"
     SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
     if [ x"${SNYK_TOKEN}" = 'x' ]; then
@@ -65,3 +34,37 @@ function sync_container_monitoring() {
 
     exit 0
 }
+
+function call_snyk_with_retry() {
+  local retries=3
+  local delay=10
+
+  while (( retries > 0 )); do
+      sync_container_monitoring
+      if [[ $? -eq 0 ]]; then
+          break
+      fi
+      (( retries-- ))
+      echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
+      sleep $delay
+  done
+
+  if [[ $retries -eq 0 ]]; then
+      echo "Snyk container monitoring failed after ${retries} retries."
+      return 1
+  fi
+}
+
+if [ $# -eq 0 ]; then
+    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag> ['true' if prerelease version]"
+    exit 1
+fi
+IMAGE=$1
+IS_PRERELEASE=${2:-false}
+
+if [ x"$IS_PRERELEASE" != "xtrue" ]; then
+    call_snyk_with_retry
+fi
+
+echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
+exit 0

@@ -12,12 +12,54 @@
 
 set -e
 
+function snyk_container_test() {
+  echo "######## Snyk container testing ########"
+  echo "Authenticating with Snyk..."
+  snyk auth -d $SNYK_TOKEN
+
+  echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
+  echo "Performing security scan from the directory [`pwd`]"
+
+  if [ -f "$SNYK_FILE" ]; then
+      echo "Performing security scan with .snyk policy file"
+      snyk container test -d $IMAGE \
+           --severity-threshold=$SEV_THRESHOLD \
+           --exclude-app-vulns \
+           --policy-path=$SNYK_FILE
+  else
+      snyk container test -d $IMAGE \
+           --severity-threshold=$SEV_THRESHOLD \
+           --exclude-app-vulns
+  fi
+}
+
+function call_snyk_with_retry() {
+  local retries=3
+  local delay=10
+
+  while (( retries > 0 )); do
+      snyk_container_test
+      if [[ $? -eq 0 ]]; then
+          break
+      # https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
+      elif [[ $? -eq 2 || $? -eq 3 ]]; then
+        (( retries-- ))
+        echo "Failed to perform Synk container test. Will retry in ${delay} seconds..."
+        sleep $delay
+      fi
+  done
+
+  if [[ $retries -eq 0 ]]; then
+      echo "Snyk container testing failed after ${retries} retries."
+      return 1
+  fi
+}
+
 if [ $# -eq 0 ]; then
     echo "No docker image supplied. Syntax: post_build.sh <image tag or hash> ['true' if a release image]"
     exit 1
 fi
 IMAGE=$1
-IS_RELEASE=${2:-false}
 RUN_FUNCTESTS=${3:-true}
 SNYK_FILE=${4:-'.snyk'}
 
@@ -39,23 +81,7 @@ if [ x"${SNYK_TOKEN}" = 'x' ]; then
     exit 1
 fi
 
-echo "Authenticating with Snyk..."
-snyk auth -d $SNYK_TOKEN
-
-echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
-echo "Performing security scan from the directory [`pwd`]"
-
-if [ -f "$SNYK_FILE" ]; then
-    echo "Performing security scan with .snyk policy file"
-    snyk container test -d $IMAGE \
-         --severity-threshold=$SEV_THRESHOLD \
-         --exclude-app-vulns \
-         --policy-path=$SNYK_FILE
-else
-    snyk container test -d $IMAGE \
-         --severity-threshold=$SEV_THRESHOLD \
-         --exclude-app-vulns
-fi
+call_snyk_with_retry
 
 echo "######## Integration Testing ########"
 if [ $RUN_FUNCTESTS = true ]; then
