@@ -10,8 +10,6 @@
 #
 # The release image flag defaults to false, the testing flag to true.
 
-set -e
-
 function snyk_container_test() {
   echo "######## Snyk container testing ########"
   echo "Authenticating with Snyk..."
@@ -39,10 +37,11 @@ function call_snyk_with_retry() {
 
   while (( retries > 0 )); do
       snyk_container_test
-      if [[ $? -eq 0 ]]; then
+      exit_status=$?
+      if [[ $exit_status -eq 0 || $exit_status -eq 1 ]]; then
           break
       # https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
-      elif [[ $? -eq 2 || $? -eq 3 ]]; then
+      elif [[ $exit_status -eq 2 || $exit_status -eq 3 ]]; then
         (( retries-- ))
         echo "Failed to perform Synk container test. Will retry in ${delay} seconds..."
         sleep $delay
