@@ -14,6 +14,30 @@ IMAGE=$1
 IS_PRERELEASE=${2:-false}
 
 if [ x"$IS_PRERELEASE" != "xtrue" ]; then
+    local retries=3
+    local delay=10
+
+    while (( retries > 0 )); do
+        sync_container_monitoring
+        if [[ $? -eq 0 ]]; then
+            break
+        fi
+        (( retries-- ))
+        echo "Failed to setup Snyk container monitoring. Will retry in 10 seconds..."
+        sleep $delay
+    done
+
+    if [[ $retries -eq 0 ]]; then
+        echo "Snyk container monitoring failed after $retries retries."
+        return 1
+    fi
+fi
+
+echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
+exit 0
+
+
+function sync_container_monitoring() {
     echo "######## Security Scan ########"
     SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
@@ -40,7 +64,4 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
          $IMAGE
 
     exit 0
-fi
-
-echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
-exit 0
+}
