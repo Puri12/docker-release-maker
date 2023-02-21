@@ -39,8 +39,8 @@ function call_snyk_with_retry() {
 
   while (( retries > 0 )); do
       sync_container_monitoring
-      exit_status=$?
-      if [[ $exit_status -eq 0 ]]; then
+      exit_code=$?
+      if [[ $exit_code -eq 0 ]]; then
           break
       fi
       (( retries-- ))

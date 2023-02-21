@@ -37,11 +37,11 @@ function call_snyk_with_retry() {
 
   while (( retries > 0 )); do
       snyk_container_test
-      exit_status=$?
-      if [[ $exit_status -eq 0 || $exit_status -eq 1 ]]; then
+      exit_code=$?
+      if [[ $exit_code -eq 0 || $exit_code -eq 1 ]]; then
           break
       # https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
-      elif [[ $exit_status -eq 2 || $exit_status -eq 3 ]]; then
+      elif [[ $exit_code -eq 2 || $exit_code -eq 3 ]]; then
         (( retries-- ))
         echo "Failed to perform Synk container test. Will retry in ${delay} seconds..."
         sleep $delay
