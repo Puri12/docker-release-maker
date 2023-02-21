@@ -101,12 +101,6 @@ def release_filter(version):
     return all(d.isdigit() for d in version.split('.'))
 
 
-# If this function encounters an Exception then retry for a max
-# of ten attempts. Use a binary exponential backoff factor of 2
-# to give the upstream dependency time to resolve its issues.
-#
-# 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
-# each retry
 @retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
@@ -137,12 +131,6 @@ pac_url_map = {
 }
 
 
-# If this function encounters an Exception then retry for a max
-# of ten attempts. Use a binary exponential backoff factor of 2
-# to give the upstream dependency time to resolve its issues.
-#
-# 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
-# each retry
 @retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_all_pac_versions(product_key):
     meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
@@ -195,12 +183,6 @@ jira_product_key_mapper = {
 }
 
 
-# If this function encounters an Exception then retry for a max
-# of ten attempts. Use a binary exponential backoff factor of 2
-# to give the upstream dependency time to resolve its issues.
-#
-# 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
-# each retry
 @retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_eap_versions(product_key):
     feed_key = product_key
