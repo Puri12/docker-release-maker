@@ -12,10 +12,18 @@ import requests
 import subprocess
 import os
 
+from retry import retry
+
+RETRY_COUNT = 10
+RETRY_DELAY = 1
+RETRY_BACKOFF = 2
+
+
 class Registry:
     DOCKER_REGISTRY = "docker-public.packages.atlassian.com"
     USERNAME = os.environ['DOCKER_BOT_USERNAME']
     PASSWORD = os.environ['DOCKER_BOT_PASSWORD']
+
 
 class EnvironmentException(Exception):
     pass
@@ -26,15 +34,15 @@ class TestFailedException(Exception):
 
 
 class VersionType(IntEnum):
-     MILESTONE = 0
-     BETA = 1
-     RELEASE_CANDIDATE = 2
-     RELEASE = 3
+    MILESTONE = 0
+    BETA = 1
+    RELEASE_CANDIDATE = 2
+    RELEASE = 3
 
 
 @dataclasses.dataclass(order=True, unsafe_hash=True)
 class Version:
-    major: [int,str] = 0
+    major: [int, str] = 0
     minor: int = 0
     patch: int = 0
     build: int = 0
@@ -66,6 +74,13 @@ class TargetRepo:
     existing_tags: set[str]
 
 
+# If this function encounters an Exception then retry for a max
+# of ten attempts. Use a binary exponential backoff factor of 2
+# to give the upstream dependency time to resolve its issues.
+#
+# 1,2,4,8,16,32,64,128,256 seconds is waited respectively before
+# each retry
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def existing_tags(repo):
     logging.info(f'Retrieving Docker tags for {repo}')
     r = requests.get(f'https://{Registry.USERNAME}:{Registry.PASSWORD}@{Registry.DOCKER_REGISTRY}/v2/{repo}/tags/list')
@@ -74,6 +89,7 @@ def existing_tags(repo):
     tag_data = r.json()
     tags = {t for t in tag_data["tags"]}
     return tags
+
 
 def get_targets(repos):
     logging.info(f'Retrieving Docker tags for {repos}')
@@ -85,6 +101,7 @@ def release_filter(version):
     return all(d.isdigit() for d in version.split('.'))
 
 
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_versions(product_key):
     mac_url = 'https://marketplace.atlassian.com'
     request_url = f'/rest/2/products/key/{product_key}/versions'
@@ -113,6 +130,8 @@ pac_url_map = {
     'bitbucket-mesh': 'bitbucket/mesh/mesh-distribution',
 }
 
+
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_all_pac_versions(product_key):
     meta_url = f'https://packages.atlassian.com/maven-external/com/atlassian/{pac_url_map[product_key]}/maven-metadata.xml'
     r = requests.get(meta_url)
@@ -134,15 +153,21 @@ def fetch_pac_release_versions(product_key):
 pac_release_api_map = {
     'bitbucket-mesh': fetch_pac_release_versions
 }
+
+
 def fetch_release_versions(product_key):
     lookup = pac_release_api_map.get(product_key, fetch_mac_versions)
     return lookup(product_key)
 
+
 # PAC has everything, including random snapshot builds. Limit this to RC and milestone builds.
 pac_eap_version_pattern = re.compile(r'\d+\.\d+\.\d+-(RC|M)\d+', re.IGNORECASE)
+
+
 def pac_eap_filter(version):
     vmatch = pac_eap_version_pattern.match(version)
     return vmatch != None
+
 
 def fetch_pac_eap_versions(product_key):
     all_vers = fetch_all_pac_versions(product_key)
@@ -158,6 +183,7 @@ jira_product_key_mapper = {
 }
 
 
+@retry(Exception, tries=RETRY_COUNT, delay=RETRY_DELAY, backoff=RETRY_BACKOFF)
 def fetch_mac_eap_versions(product_key):
     feed_key = product_key
     description_key = None
@@ -172,7 +198,7 @@ def fetch_mac_eap_versions(product_key):
     versions = set()
     for item in data:
         if description_key is not None and description_key not in item['description'].lower():
-                continue
+            continue
         version = mac_eap_version_pattern.search(item['description']).group(1)
         versions.add(version)
     logging.info(f'Found {len(versions)} EAPs')
@@ -241,7 +267,7 @@ def batch_job(product_versions, batch_count, batch):
 def run_script(script, *args):
     if not os.path.exists(script):
         msg = f"Script '{script}' does not exist; failing!"
-        logging.error (msg)
+        logging.error(msg)
         raise EnvironmentException(msg)
 
     # run provided test script - terminate with error if the test failed
@@ -317,7 +343,7 @@ class ReleaseManager:
     def build_releases(self, versions_to_build, is_prerelease=False):
         logging.info(
             f'Found {len(versions_to_build)} '
-            f'release{"" if len(versions_to_build)==1 else "s"} to build'
+            f'release{"" if len(versions_to_build) == 1 else "s"} to build'
         )
         logging.info(f'Building with {self.concurrent_builds} threads')
         if self.dockerfile is not None:
@@ -355,15 +381,14 @@ class ReleaseManager:
             if retry > self.max_retries:
                 logging.error(f'Push failed for tag "{release}"')
                 raise e
-            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry+1}s ...')
-            time.sleep(retry+1)
+            logging.warning(f'Pushing tag "{release}" failed; retrying in {retry + 1}s ...')
+            time.sleep(retry + 1)
             # retry push in case of error
             self._push_release(release, retry + 1, is_prerelease)
         else:
             logging.info(f'Pushing tag "{release}" succeeded!')
             self._run_post_push_hook(release, is_prerelease)
             return
-
 
     def _build_image(self, version, retry=0):
         buildargs = {self.dockerfile_version_arg: version}
@@ -388,8 +413,8 @@ class ReleaseManager:
                     logging.error(f"Build Log: {line['stream'].strip()}")
                 raise exc
         logging.warning(f'Build with args {buildargs_log_str} failed; retrying in 30 seconds...')
-        time.sleep(30) # wait 30s before retrying build after failure
-        return self._build_image(version, retry=retry+1)
+        time.sleep(30)  # wait 30s before retrying build after failure
+        return self._build_image(version, retry=retry + 1)
 
     def _build_release(self, version, is_prerelease=False):
         logging.info(f"#### Building release {version}")
@@ -400,7 +425,7 @@ class ReleaseManager:
         logging.info(f"#### Preparing the release {version}")
         self._run_post_build_hook(image, version)
 
-        tags =  self.calculate_tags(version)
+        tags = self.calculate_tags(version)
         logging.info('##### Pushing the image tags')
         logging.info(f"TAGS FOR {version} ARE {tags}")
         for tag in tags:
@@ -457,7 +482,7 @@ class ReleaseManager:
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
         if latest_eap(version, self.eap_release_versions):
-           version_tags.add('eap')
+            version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
             if latest(version, self.avail_versions):
