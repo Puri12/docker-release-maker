@@ -275,7 +275,34 @@ def run_script(script, *args):
     logging.info(f'Running script: "{script_command}"')
     proc = subprocess.run(script_command)
     if proc.returncode != 0:
-        msg = f"Script '{script}' exited with non-zero ({proc.returncode}); failing!"
+
+        # Sometimes Snyk cli commands exist with 2 or 3 exit code
+        # and rerunning the failed step typically fixes it. See:
+        # https://docs.snyk.io/snyk-cli/commands/monitor#exit-codes
+        # https://docs.snyk.io/snyk-cli/commands/test#exit-codes
+
+        if proc.returncode == 2 or proc.returncode == 3:
+            logging.warning(f"Script '{script}' exited with ({proc.returncode}) code which can be caused by Snyk API issues")
+            retries = 3
+            timeout = 5
+            while retries > 0:
+                logging.info(f'Re-running script: "{script_command}"')
+                proc = subprocess.run(script_command)
+                if proc.returncode == 0:
+                    logging.info(f"Re-running script '{script}' was successful")
+                    break
+                else:
+                    retries -= 1
+                    if retries == 0:
+                        msg = f"Maximum number of {retries} retries reached." \
+                              f"Script '{script}' exited with non-zero ({proc.returncode}) code; failing!"
+                        logging.error(msg)
+                        raise TestFailedException(msg)
+                    else:
+                        logging.warning(f'Retrying executing {script} in {timeout} seconds...({retries} retries left)')
+                        time.sleep(timeout)
+
+        msg = f"Script '{script}' exited with non-zero ({proc.returncode}) code; failing!"
         logging.error(msg)
         raise TestFailedException(msg)
 
