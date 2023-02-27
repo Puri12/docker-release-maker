@@ -29,29 +29,30 @@ function sync_container_monitoring() {
          --project-name=$IMAGE \
          --project-tags=team-name=dc-deployment \
          $IMAGE
-
-    exit 0
 }
 
 function call_snyk_with_retry() {
-  local retries=3
-  local delay=10
+  set +e
+  local max_retries=3
+  local retries=${max_retries}
 
   while (( retries > 0 )); do
       sync_container_monitoring
       exit_code=$?
       if [[ $exit_code -eq 0 ]]; then
           break
+      else
+        (( retries-- ))
+        echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
+        sleep $delay
       fi
-      (( retries-- ))
-      echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
-      sleep $delay
   done
 
   if [[ $retries -eq 0 ]]; then
-      echo "Snyk container monitoring failed after ${retries} retries."
-      return 1
+      echo "Snyk container monitoring failed after ${max_retries} retries."
+      exit 1
   fi
+  set -e
 }
 
 if [ $# -eq 0 ]; then
@@ -63,7 +64,7 @@ IS_PRERELEASE=${2:-false}
 
 if [ x"$IS_PRERELEASE" != "xtrue" ]; then
     call_snyk_with_retry
+else
+  echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
+  exit 0
 fi
-
-echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
-exit 0
