@@ -35,6 +35,7 @@ function call_snyk_with_retry() {
   set +e
   local max_retries=3
   local retries=${max_retries}
+  local delay=1
 
   while (( retries > 0 )); do
       sync_container_monitoring
