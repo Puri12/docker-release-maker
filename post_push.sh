@@ -14,7 +14,7 @@ sync_container_monitoring() {
     fi
 
     echo "Authenticating with Snyk..."
-    snyk auth -d $SNYK_TOKEN
+    snyk auth -d "$SNYK_TOKEN"
 
     echo "Enabling Snyk monitoring for image $IMAGE."
     # Note: A quirk of Snyk is that if we release a new version of the
@@ -24,11 +24,11 @@ sync_container_monitoring() {
     # (e.g. EAPs), we also set the project name, which will create a
     # separate monitoring project for each version.
     snyk container monitor -d \
-         --severity-threshold=$SEV_THRESHOLD \
+         --severity-threshold="$SEV_THRESHOLD" \
          --exclude-app-vulns \
-         --project-name=$IMAGE \
+         --project-name="$IMAGE" \
          --project-tags=team-name=dc-deployment \
-         $IMAGE
+         "$IMAGE"
 }
 
 call_snyk_with_retry() {

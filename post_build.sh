@@ -14,20 +14,20 @@ set -e
 snyk_container_test() {
   echo "######## Snyk container testing ########"
   echo "Authenticating with Snyk..."
-  snyk auth -d $SNYK_TOKEN
+  snyk auth -d "$SNYK_TOKEN"
   
   echo "Performing security scan for image $IMAGE (threshold=${SEV_THRESHOLD})"
-  echo "Performing security scan from the directory [`pwd`]"
+  echo "Performing security scan from the directory [$(pwd)]"
   
   if [ -f "$SNYK_FILE" ]; then
       echo "Performing security scan with .snyk policy file"
-      snyk container test -d $IMAGE \
-           --severity-threshold=$SEV_THRESHOLD \
+      snyk container test -d "$IMAGE" \
+           --severity-threshold="$SEV_THRESHOLD" \
            --exclude-app-vulns \
-           --policy-path=$SNYK_FILE
+           --policy-path="$SNYK_FILE"
   else
-      snyk container test -d $IMAGE \
-           --severity-threshold=$SEV_THRESHOLD \
+      snyk container test -d "$IMAGE" \
+           --severity-threshold="$SEV_THRESHOLD" \
            --exclude-app-vulns
   fi
 }
@@ -70,11 +70,11 @@ SNYK_FILE=${4:-'.snyk'}
 
 
 echo "######## Dockerfile Linting ########"
-echo "Performing Dockerfile lint from the directory [`pwd`]"
+echo "Performing Dockerfile lint from the directory [$(pwd)]"
 DOCKER_LINT=${DOCKER_LINT:-'/usr/src/app/hadolint'}
 for dockerfile in Dockerfile*; do
     echo "Linting ${dockerfile} ..."
-    ${DOCKER_LINT} ${dockerfile}
+    ${DOCKER_LINT} "$dockerfile"
 done
 
 
@@ -89,11 +89,11 @@ fi
 call_snyk_with_retry
 
 echo "######## Integration Testing ########"
-if [ $RUN_FUNCTESTS = true ]; then
+if [ "$RUN_FUNCTESTS" = true ]; then
     FUNCTEST_SCRIPT=${FUNCTEST_SCRIPT:-'./func-tests/run-functests'}
-    if [ -x $FUNCTEST_SCRIPT ]; then
+    if [ -x "$FUNCTEST_SCRIPT" ]; then
         echo "Invoking ${FUNCTEST_SCRIPT} ${IMAGE}"
-        ${FUNCTEST_SCRIPT} $IMAGE
+        ${FUNCTEST_SCRIPT} "$IMAGE"
     else
         echo "Testing script ${FUNCTEST_SCRIPT} doesn't exist or is not executable; skipping."
     fi
