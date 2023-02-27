@@ -37,13 +37,13 @@ function call_snyk_with_retry() {
   local retries=${max_retries}
   local delay=5
 
-  while (( retries > 0 )); do
+  while [ "$retries" -gt 0 ]; do
       sync_container_monitoring
       exit_code=$?
       if [[ $exit_code -eq 0 ]]; then
           break
       else
-        (( retries-- ))
+        retries=$((retries - 1))
         echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
         sleep $delay
       fi

@@ -38,7 +38,7 @@ function call_snyk_with_retry() {
   local retries=${max_retries}
   local delay=5
 
-  while (( retries > 0 )); do
+  while [ "$retries" -gt 0 ]; do
       snyk_container_test
       exit_code=$?
       if [[ $exit_code -eq 0 ]]; then
@@ -47,7 +47,7 @@ function call_snyk_with_retry() {
           exit 1
       # https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
       elif [[ $exit_code -eq 2 || $exit_code -eq 3 ]]; then
-        (( retries-- ))
+        retries=$((retries - 1))
         echo "Failed to perform Synk container test. Will retry in ${delay} seconds..."
         sleep $delay
       fi
