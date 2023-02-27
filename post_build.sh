@@ -11,7 +11,7 @@ set -e
 #
 # The release image flag defaults to false, the testing flag to true.
 
-function snyk_container_test() {
+snyk_container_test() {
   echo "######## Snyk container testing ########"
   echo "Authenticating with Snyk..."
   snyk auth -d $SNYK_TOKEN
@@ -32,28 +32,28 @@ function snyk_container_test() {
   fi
 }
 
-function call_snyk_with_retry() {
+call_snyk_with_retry() {
   set +e
-  local max_retries=3
-  local retries=${max_retries}
-  local delay=5
+  max_retries=3
+  retries=${max_retries}
+  delay=5
 
   while [ "$retries" -gt 0 ]; do
       snyk_container_test
       exit_code=$?
-      if [[ $exit_code -eq 0 ]]; then
+      if [ "$exit_code" -eq 0 ]; then
           break
-      elif [[ $exit_code -eq 1 ]]; then
+      elif [ "$exit_code" -eq 1 ]; then
           exit 1
       # https://docs.snyk.io/snyk-cli/commands/container-test#exit-codes
-      elif [[ $exit_code -eq 2 || $exit_code -eq 3 ]]; then
+      elif [ "$exit_code" -eq 2 ] || [ "$exit_code" -eq 3 ]; then
         retries=$((retries - 1))
         echo "Failed to perform Synk container test. Will retry in ${delay} seconds..."
         sleep $delay
       fi
   done
 
-  if [[ $retries -eq 0 ]]; then
+  if [ "$retries" -eq 0 ]; then
       echo "Snyk container testing failed after ${max_retries} retries."
       exit 1
   fi

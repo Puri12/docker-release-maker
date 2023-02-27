@@ -4,7 +4,7 @@
 #
 #   Usage: <path-to>/post_push.sh <repo/image:tag>
 
-function sync_container_monitoring() {
+sync_container_monitoring() {
     echo "######## Snyk container Monitoring ########"
     SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
@@ -31,16 +31,16 @@ function sync_container_monitoring() {
          $IMAGE
 }
 
-function call_snyk_with_retry() {
+call_snyk_with_retry() {
   set +e
-  local max_retries=3
-  local retries=${max_retries}
-  local delay=5
+  max_retries=3
+  retries=${max_retries}
+  delay=5
 
   while [ "$retries" -gt 0 ]; do
       sync_container_monitoring
       exit_code=$?
-      if [[ $exit_code -eq 0 ]]; then
+      if [ "$exit_code" -eq 0 ]; then
           break
       else
         retries=$((retries - 1))
@@ -49,7 +49,7 @@ function call_snyk_with_retry() {
       fi
   done
 
-  if [[ $retries -eq 0 ]]; then
+  if [ "$retries" -eq 0 ]; then
       echo "Snyk container monitoring failed after ${max_retries} retries."
       exit 1
   fi
