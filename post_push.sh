@@ -4,7 +4,7 @@
 #
 #   Usage: <path-to>/post_push.sh <repo/image:tag>
 
-function sync_container_monitoring() {
+sync_container_monitoring() {
     echo "######## Snyk container Monitoring ########"
     SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
@@ -14,7 +14,7 @@ function sync_container_monitoring() {
     fi
 
     echo "Authenticating with Snyk..."
-    snyk auth -d $SNYK_TOKEN
+    snyk auth -d "$SNYK_TOKEN"
 
     echo "Enabling Snyk monitoring for image $IMAGE."
     # Note: A quirk of Snyk is that if we release a new version of the
@@ -24,32 +24,32 @@ function sync_container_monitoring() {
     # (e.g. EAPs), we also set the project name, which will create a
     # separate monitoring project for each version.
     snyk container monitor -d \
-         --severity-threshold=$SEV_THRESHOLD \
+         --severity-threshold="$SEV_THRESHOLD" \
          --exclude-app-vulns \
-         --project-name=$IMAGE \
+         --project-name="$IMAGE" \
          --project-tags=team-name=dc-deployment \
-         $IMAGE
+         "$IMAGE"
 }
 
-function call_snyk_with_retry() {
+call_snyk_with_retry() {
   set +e
-  local max_retries=3
-  local retries=${max_retries}
-  local delay=5
+  max_retries=3
+  retries=${max_retries}
+  delay=5
 
-  while (( retries > 0 )); do
+  while [ "$retries" -gt 0 ]; do
       sync_container_monitoring
       exit_code=$?
-      if [[ $exit_code -eq 0 ]]; then
+      if [ "$exit_code" -eq 0 ]; then
           break
       else
-        (( retries-- ))
+        retries=$((retries - 1))
         echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
         sleep $delay
       fi
   done
 
-  if [[ $retries -eq 0 ]]; then
+  if [ "$retries" -eq 0 ]; then
       echo "Snyk container monitoring failed after ${max_retries} retries."
       exit 1
   fi
