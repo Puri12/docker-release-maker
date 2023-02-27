@@ -4,17 +4,8 @@
 #
 #   Usage: <path-to>/post_push.sh <repo/image:tag>
 
-set -e
-
-if [ $# -eq 0 ]; then
-    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag> ['true' if prerelease version]"
-    exit 1
-fi
-IMAGE=$1
-IS_PRERELEASE=${2:-false}
-
-if [ x"$IS_PRERELEASE" != "xtrue" ]; then
-    echo "######## Security Scan ########"
+function sync_container_monitoring() {
+    echo "######## Snyk container Monitoring ########"
     SEV_THRESHOLD=${SEV_THRESHOLD:-high}
 
     if [ x"${SNYK_TOKEN}" = 'x' ]; then
@@ -38,9 +29,43 @@ if [ x"$IS_PRERELEASE" != "xtrue" ]; then
          --project-name=$IMAGE \
          --project-tags=team-name=dc-deployment \
          $IMAGE
+}
 
-    exit 0
+function call_snyk_with_retry() {
+  set +e
+  local max_retries=3
+  local retries=${max_retries}
+  local delay=5
+
+  while (( retries > 0 )); do
+      sync_container_monitoring
+      exit_code=$?
+      if [[ $exit_code -eq 0 ]]; then
+          break
+      else
+        (( retries-- ))
+        echo "Failed to setup Snyk container monitoring. Will retry in ${delay} seconds..."
+        sleep $delay
+      fi
+  done
+
+  if [[ $retries -eq 0 ]]; then
+      echo "Snyk container monitoring failed after ${max_retries} retries."
+      exit 1
+  fi
+  set -e
+}
+
+if [ $# -eq 0 ]; then
+    echo "No docker image supplied. Syntax: post_push.sh <repo/image:tag> ['true' if prerelease version]"
+    exit 1
 fi
+IMAGE=$1
+IS_PRERELEASE=${2:-false}
 
-echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
-exit 0
+if [ x"$IS_PRERELEASE" != "xtrue" ]; then
+    call_snyk_with_retry
+else
+  echo "Image ${IMAGE} is flagged as pre-release, skipping Snyk monitoring."
+  exit 0
+fi
