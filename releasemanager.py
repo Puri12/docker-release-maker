@@ -282,7 +282,7 @@ def run_script(script, *args):
 
 class ReleaseManager:
 
-    def __init__(self, start_version, end_version, concurrent_builds, default_release,
+    def __init__(self, start_version, end_version, concurrent_builds, default_release,  default_eap,
                  docker_repos, dockerfile, dockerfile_buildargs, dockerfile_version_arg,
                  product_key, tag_suffixes, push_docker, post_build_hook, post_push_hook,
                  job_offset=None, jobs_total=None):
@@ -293,6 +293,7 @@ class ReleaseManager:
             self.end_version = Version(self.start_version.major + 1)
         self.concurrent_builds = int(concurrent_builds or 1)
         self.default_release = default_release
+        self.default_eap = default_eap
         self.docker_cli = docker.from_env()
 
         self.tag_suffixes = set(tag_suffixes or set())
@@ -481,8 +482,8 @@ class ReleaseManager:
         if latest_minor(version, self.avail_versions):
             major_minor_version = '.'.join(version.split('.')[:2])
             version_tags.add(major_minor_version)
-        if latest_eap(version, self.eap_release_versions):
-            version_tags.add('eap')
+        if self.default_eap and latest_eap(version, self.eap_release_versions):
+           version_tags.add('eap')
         if self.default_release:
             tags |= (version_tags)
             if latest(version, self.avail_versions):

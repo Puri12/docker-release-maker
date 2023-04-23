@@ -8,6 +8,7 @@ def refapp():
         'end_version': None,
         'concurrent_builds': '4',
         'default_release': True,
+        'default_eap': True,
         'docker_repos': ['atlassian/bitbucket-server'],
         'dockerfile': None,
         'dockerfile_buildargs': None,

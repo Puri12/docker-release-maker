@@ -24,6 +24,7 @@ def parse_args():
 
     parser.add_argument('--concurrent-builds', dest='concurrent_builds', type=int, default=1)
     parser.add_argument('--default-release', dest='default_release', action='store_true')
+    parser.add_argument('--default-eap', dest='default_eap', action='store_true')
     parser.add_argument('--dockerfile', dest='dockerfile', default='Dockerfile')
     parser.add_argument('--dockerfile-buildargs', dest='dockerfile_buildargs')
     parser.add_argument('--post-build-hook', dest='post_build_hook', default='/usr/src/app/post_build.sh')
@@ -50,6 +51,7 @@ def main(args):
                              end_version=args.end_version,
                              concurrent_builds=args.concurrent_builds,
                              default_release=args.default_release,
+                             default_eap=args.default_eap,
                              docker_repos=args.docker_repos.split(','),
                              dockerfile=args.dockerfile,
                              dockerfile_buildargs=args.dockerfile_buildargs,
