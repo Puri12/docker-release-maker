@@ -452,7 +452,7 @@ class ReleaseManager:
 
     def _run_post_push_hook(self, release, is_prerelease=False):
         if self.post_push_hook is None or self.post_push_hook == '':
-            logging.warning("Post-push hook is not set; skipping! ")
+            logging.info("Post-push hook is not set; skipping! ")
             return
 
         logging.info(f'Running hook: {self.post_push_hook}')
