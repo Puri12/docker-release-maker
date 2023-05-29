@@ -16,7 +16,7 @@ pipelines:
             - npm install snyk
             - npx snyk auth $SNYK_TOKEN
             - npx snyk container test ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high --exclude-app-vulns
-            - npx snyk container monitor ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high --exclude-app-vulns --org engineering-container-scanning
+            - npx snyk container monitor ${DOCKER_REGISTRY}/atlassian/docker-release-maker:latest --severity-threshold=high --exclude-app-vulns --org=engineering-container-scanning
 
     '**':
       - step:
